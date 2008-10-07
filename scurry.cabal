@@ -1,0 +1,27 @@
+Name:          Scurry
+Version:       0.0.1
+Category:      Network
+Description:   A distributed VPN system written in Haskell.
+License:       BSD3
+License-File:  LICENSE
+Author:        John Van Enk
+Maintainer:    vanenkj@gmail.com
+Copyright:     John Van Enk, 2008
+
+Cabal-Version: >= 1.2.0
+Build-Type:    Simple
+
+extra-source-files: src/help.h
+
+executable scurry
+    build-depends: base >= 3.0.0.0
+    build-depends: binary >= 0.4.3.1
+    build-depends: network >= 2.1.0.0
+    build-depends: network-bytestring >= 0.1.1.2
+    build-depends: bytestring >= 0.9.0.1
+    build-depends: unix >= 2.3.0.0
+
+    hs-source-dirs:     src
+    ghc-options:        -Wall -O2 -threaded
+    c-sources:          src/C/help.c
+    main-is:            scurry.hs
