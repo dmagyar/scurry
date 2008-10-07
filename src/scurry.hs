@@ -11,22 +11,27 @@ import Scurry.Communication
 
 main :: IO ()
 main = do 
-    (tapIp:myIp:yourIp:_) <- getArgs
+    (tapIp:myIp:myPort:yourIp:yourPort:_) <- getArgs
     tap <- getTapHandle tapIp
 
     m <- inet_addr myIp
     y <- inet_addr yourIp
 
+    let r = read :: (String -> Int)
+        myAddr = SockAddrInet (fromIntegral . r $ myPort) m
+        yourAddr = SockAddrInet (fromIntegral . r$ yourPort) y
+
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
-        (Right t) -> doWork t m y
+        (Right t) -> doWork t myAddr yourAddr
 
-doWork :: Handle -> HostAddress -> HostAddress -> IO ()
+doWork :: Handle -> SockAddr -> SockAddr -> IO ()
 doWork tap myIp yourIp = do
-    let sai = (SockAddrInet 24999 yourIp)
+    local <- prepEndPoint myIp
 
-    local <- prepLocalEndPoint myIp 24999
+    -- Send a thread off to read from the TAP device
+    forkIO $ localProcessing tap local yourIp
 
-    forkIO $ localProcessing tap local sai
+    -- This thread will read from the network socket
     remoteProcessing tap local
 

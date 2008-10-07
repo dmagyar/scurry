@@ -51,7 +51,7 @@ int open_tap(ip4_addr_t local_ip)
     if (set_ip(&ifr_tap, sock, local_ip) < 0)
         return -4;
 
-    /*
+    /* Yargh! Why doesn't this work.
     if (set_mask(&ifr_tap, sock, local_mask) < 0)
         return -5;
     */
