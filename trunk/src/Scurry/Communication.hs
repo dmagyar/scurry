@@ -1,6 +1,5 @@
 module Scurry.Communication(
-    prepLocalEndPoint,
-    prepRemoteEndPoint,
+    prepEndPoint,
     remoteProcessing,
     localProcessing,
     debugFrame
@@ -17,14 +16,10 @@ import Control.Monad (forever)
 
 import Scurry.Ethernet
 
-prepRemoteEndPoint :: IO Socket
-prepRemoteEndPoint = do
-    socket AF_INET Datagram defaultProtocol
-
-prepLocalEndPoint :: HostAddress -> PortNumber -> IO Socket
-prepLocalEndPoint ep port = do
+prepEndPoint :: SockAddr -> IO Socket
+prepEndPoint ep = do
     s <- socket AF_INET Datagram defaultProtocol
-    bindSocket s (SockAddrInet port ep)
+    bindSocket s ep
     return s
 
 localProcessing :: Handle -> Socket -> SockAddr -> IO ()
