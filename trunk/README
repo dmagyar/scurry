@@ -1,0 +1,19 @@
+How to run the initial point-to-point proof of concept:
+
+# Machine 1 with IP address 192.168.128.50
+# Machine 2 with IP address 192.168.128.53
+
+# Run on Machine 1
+sudo ./scurry 10.0.0.1 0.0.0.0 192.168.128.53
+
+# Run on Machine 2
+sudo ./scurry 10.0.0.2 0.0.0.0 192.168.128.50
+
+# Use the network from Machine 1
+ping 10.0.0.2
+
+# Use the network from Machine 2
+ping 10.0.0.1
+
+# Done!
+
