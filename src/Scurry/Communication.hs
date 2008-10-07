@@ -33,30 +33,22 @@ remoteProcessing tap net = forever $ do
 -- |Some functions to do the reading/writing
 debugFrame :: (EthernetHeader,BS.ByteString) -> IO ()
 debugFrame (h,f) = do
-    putStrLn $ (show h) ++ " => Length: " ++ (show $ BS.length f)
+    putStrLn $ concat [(show h)," => Length: ",(show $ BS.length f)]
 
 readTAP :: Handle -> IO (EthernetHeader,BS.ByteString)
 readTAP tap = do
     hWaitForInput tap (-1)
-
-    d <- BS.hGetNonBlocking tap 1500
-    let et = bsToEthernetTuple d
-
-    return et
+    (BS.hGetNonBlocking tap 1500) >>= (return . bsToEthernetTuple)
 
 writeTAP :: Handle -> (EthernetHeader,BS.ByteString) -> IO ()
 writeTAP tap (_,frame) = do
-    let ef = frame
-
-    BSS.hPut tap (BSS.concat . BS.toChunks $ ef)
+    BSS.hPut tap (BSS.concat . BS.toChunks $ frame)
     hFlush tap
 
 readNet :: Socket -> IO (EthernetHeader,BS.ByteString)
 readNet net = do
     (msg,_) <- recvFrom net 1500 
-    let frame = bsToEthernetTuple $ BS.fromChunks [msg]
-
-    return frame
+    return . bsToEthernetTuple . BS.fromChunks $ [msg]
 
 writeNet :: Socket -> SockAddr -> (EthernetHeader,BS.ByteString) -> IO ()
 writeNet net ha (_,frame) = do
