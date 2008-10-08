@@ -8,6 +8,7 @@ import Network.Socket hiding (send, sendTo, recv, recvFrom)
 
 import Scurry.TapConfig
 import Scurry.Communication
+import Scurry.Management
 
 main :: IO ()
 main = do 
