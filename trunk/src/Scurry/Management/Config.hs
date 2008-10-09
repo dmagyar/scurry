@@ -1,16 +1,17 @@
-module Scurry.Management(
+module Scurry.Management.Config(
     Scurry(..),
     VpnConfig(..),
     NetworkConfig(..),
     DevIP,
     DevMask,
     EndPoint,
+    load_scurry_config_file
 ) where
 
 import Network.Socket hiding (inet_addr,inet_ntoa)
-import qualified Network.Socket as INET (inet_addr,inet_ntoa)
+import Scurry.Util
+
 import Text.JSON
-import System.IO.Unsafe (unsafePerformIO)
 
 data Scurry = Scurry VpnConfig NetworkConfig
     deriving (Show)
@@ -26,18 +27,11 @@ type DevMask = HostAddress
 
 type EndPoint = SockAddr
 
-{- I really don't like that inet_addr/inet_ntoa need to
- - run in IO. I also don't like how they throw errors
- - around instead of Nothing. I've fixed both problems! -}
-catch_to_maybe :: (t -> IO a) -> t -> IO (Maybe a)
-catch_to_maybe f a = catch (f a >>= (return . Just)) (\_ -> return Nothing)
-
-inet_addr :: String -> Maybe HostAddress
-inet_addr a = unsafePerformIO $ catch_to_maybe INET.inet_addr a
-
-inet_ntoa :: HostAddress -> Maybe String
-inet_ntoa a = unsafePerformIO $ catch_to_maybe INET.inet_ntoa a
-
+load_scurry_config_file :: FilePath -> IO (Maybe Scurry)
+load_scurry_config_file file = do f <- readFile file
+                                  return $ case (decode f) of
+                                                Ok f'   -> Just f'
+                                                Error _ -> Nothing
 
 scurry_err, vpn_err, net_err :: Result a
 scurry_err = Error "Not a Scurry JSON object."
