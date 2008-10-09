@@ -13,8 +13,13 @@ import Text.JSON
 import System.IO.Unsafe (unsafePerformIO)
 
 data Scurry = Scurry VpnConfig NetworkConfig
+    deriving (Show)
+
 data VpnConfig = VpnConfig DevIP DevMask
+    deriving (Show)
+
 data NetworkConfig = NetworkConfig EndPoint
+    deriving (Show)
 
 type DevIP = HostAddress
 type DevMask = HostAddress
