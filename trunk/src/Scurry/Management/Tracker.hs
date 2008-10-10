@@ -7,9 +7,16 @@ import Network.Socket hiding (inet_addr,inet_ntoa)
 type Tracker = [ScurryPeer]
 
 data ScurryPeer = ScurryPeer HostAddress PortNumber
+    deriving (Show)
 
 scurry_err :: Result a
 scurry_err = Error "Not a Scurry Peer JSON object."
+
+load_tracker_file :: FilePath -> IO (Maybe Tracker)
+load_tracker_file path = do f <- readFile path
+                            return $ case (decode f) of
+                                          Ok f'   -> Just f'
+                                          Error _ -> Nothing
 
 instance JSON ScurryPeer where
     readJSON (JSObject obj) = let objl = fromJSObject obj
