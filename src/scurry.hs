@@ -22,14 +22,10 @@ main = do
     let (Scurry (VpnConfig tapIp _) (NetworkConfig mySock)) = config
         [ScurryPeer yourIp yourPort] = tracker
 
-    putStrLn $ "Opening tap..."
     tap <- getTapHandle $ (\(Just x) -> x) (inet_ntoa tapIp)
 
     let myAddr = mySock
         yourAddr = SockAddrInet yourPort yourIp
-
-    putStrLn $ show config
-    putStrLn $ show tracker
 
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
