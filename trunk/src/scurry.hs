@@ -19,24 +19,27 @@ main = do
     (Just config)  <- load_scurry_config_file configPath
     (Just tracker) <- load_tracker_file trackerPath
 
-    let (Scurry (VpnConfig tapIp _) (NetworkConfig mySock)) = config
-        [ScurryPeer yourIp yourPort] = tracker
+    let (Scurry (VpnConfig tapIp _) (NetworkConfig mySockAddr)) = config
+        yourSockAddrs = filter (\a -> a /= mySockAddr) $
+            map tToS tracker
+
+    putStrLn $ show yourSockAddrs
 
     tap <- getTapHandle $ (\(Just x) -> x) (inet_ntoa tapIp)
 
-    let myAddr = mySock
-        yourAddr = SockAddrInet yourPort yourIp
-
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
-        (Right t) -> doWork t myAddr yourAddr
+        (Right t) -> doWork t mySockAddr yourSockAddrs
 
-doWork :: Handle -> SockAddr -> SockAddr -> IO ()
-doWork tap myIp yourIp = do
-    local <- prepEndPoint myIp
+    where
+        tToS (ScurryPeer ip port) = SockAddrInet port ip 
+
+doWork :: Handle -> SockAddr -> [SockAddr] -> IO ()
+doWork tap mySockAddr yourSockAddrs = do
+    local <- prepEndPoint mySockAddr
 
     -- Send a thread off to read from the TAP device
-    forkIO $ localProcessing tap local yourIp
+    forkIO $ localProcessing tap local yourSockAddrs
 
     -- This thread will read from the network socket
     remoteProcessing tap local
