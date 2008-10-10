@@ -22,7 +22,7 @@ prepEndPoint ep = do
     bindSocket s ep
     return s
 
-localProcessing :: Handle -> Socket -> SockAddr -> IO ()
+localProcessing :: Handle -> Socket -> [SockAddr] -> IO ()
 localProcessing tap net ha = forever $ do
     (readTAP tap) >>= (writeNet net ha)
 
@@ -50,9 +50,9 @@ readNet net = do
     (msg,_) <- recvFrom net 1500 
     return . bsToEthernetTuple . BS.fromChunks $ [msg]
 
-writeNet :: Socket -> SockAddr -> (EthernetHeader,BS.ByteString) -> IO ()
-writeNet net ha (_,frame) = do
-    _ <- sendTo net (BSS.concat . BS.toChunks $ frame) ha
+writeNet :: Socket -> [SockAddr] -> (EthernetHeader,BS.ByteString) -> IO ()
+writeNet net has (_,frame) = do
+    _ <- mapM (sendTo net (BSS.concat . BS.toChunks $ frame)) has 
     return ()
 
 bsToEthernetTuple :: BS.ByteString -> (EthernetHeader,BS.ByteString)
