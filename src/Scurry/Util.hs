@@ -20,3 +20,4 @@ inet_addr a = unsafePerformIO $ catch_to_maybe INET.inet_addr a
 inet_ntoa :: HostAddress -> Maybe String
 inet_ntoa a = unsafePerformIO $ catch_to_maybe INET.inet_ntoa a
 
+
