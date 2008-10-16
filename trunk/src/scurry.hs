@@ -18,13 +18,16 @@ main = do
     (Just config)  <- load_scurry_config_file configPath
     (Just tracker) <- load_tracker_file trackerPath
 
-    let (Scurry (VpnConfig tapIp _) (NetworkConfig mySockAddr)) = config
+    let (Scurry (VpnConfig tapIp tapMask) (NetworkConfig mySockAddr)) = config
         yourSockAddrs = filter (\a -> a /= mySockAddr) $
             map tToS tracker
 
     putStrLn $ show yourSockAddrs
 
-    tap <- getTapHandle $ (\(Just x) -> x) (inet_ntoa tapIp)
+    let frmJst (Just x) = x
+        frmJst Nothing = error "If you can't type an IP address right, I'm not even going to try and run."
+
+    tap <- getTapHandle (frmJst (inet_ntoa tapIp)) (frmJst (inet_ntoa tapMask))
 
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
