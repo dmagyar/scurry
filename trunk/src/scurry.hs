@@ -36,12 +36,5 @@ main = do
 doWork :: Handle -> SockAddr -> [SockAddr] -> IO ()
 doWork tap mySockAddr yourSockAddrs = do
     local <- prepEndPoint mySockAddr
-
-    -- Send a thread off to read from the TAP device
-    -- forkIO $ localProcessing tap local yourSockAddrs
-
-    -- This thread will read from the network socket
-    -- remoteProcessing tap local
-    
     startCom tap local (ScurryState yourSockAddrs)
 
