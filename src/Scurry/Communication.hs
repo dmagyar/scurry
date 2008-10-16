@@ -97,73 +97,9 @@ debugFrame (h,f) = do
     putStrLn $ concat [(show h)," => Length: ",(show $ BS.length f)]
 
 
-{-
-
--- |Reads packets off from the local TAP device
--- and then writes them to the network sockets
--- provided.
-localProcessing :: Handle -> Socket -> [SockAddr] -> IO ()
-localProcessing tap net ha = forever $ do
-    (readTAP tap) >>= (writeNet net ha)
-
--- |Reads packets off from the network socket
--- and writes them to the TAP device.
-remoteProcessing :: Handle -> Socket -> IO ()
-remoteProcessing tap net = forever $ do
-    (readNet net) >>= (writeTAP tap)
-
-readTAP :: Handle -> IO (EthernetHeader,BS.ByteString)
-readTAP tap = do
-    hWaitForInput tap (-1)
-    (BS.hGetNonBlocking tap readLength) >>= (return . bsToEthernetTuple)
-
-writeTAP :: Handle -> (EthernetHeader,BS.ByteString) -> IO ()
-writeTAP tap (_,frame) = do
-    BSS.hPut tap (BSS.concat . BS.toChunks $ frame)
-    hFlush tap
-
-readNet :: Socket -> IO (EthernetHeader,BS.ByteString)
-readNet net = do
-    (msg,_) <- recvFrom net readLength 
-    return . bsToEthernetTuple . BS.fromChunks $ [msg]
-
-writeNet :: Socket -> [SockAddr] -> (EthernetHeader,BS.ByteString) -> IO ()
-writeNet net has (_,frame) = do
-    _ <- mapM (sendTo net (BSS.concat . BS.toChunks $ frame)) has 
-    return ()
-
--}
-
 bsToEthernetTuple :: BS.ByteString -> (EthernetHeader,BS.ByteString)
 bsToEthernetTuple d = (decode d, d)
 
-
-
-{-
- - 1. Application Start
- - 2. Setup TAP device
- - 3. Create network socket
- - 4. Create network reading routine
- - 5. Create TAP reading routine
- - 6. Create network writing routine (on MVar)
- - 7. Create TAP writing routine (on MVar)
- -
- - Network reader accepts packets, decodes their type,
- - and then decides what to do with them.
- -
- - TAP reading thread encodes the read frame
- - and then forwards it onto the frame switch.
- -
- - Network writer waits on an MVar of type (SockAddr,ByteString)
- - and writes the string to the provided address.
- -
- - The TAP reader waits on an MVar of type (ByteString) and
- - writes the string to the TAP device.
- -
- - The frame switch decides where a packet is going and calls
- - the necessary writeNet call.
- -
- -}
 
 startCom :: Handle -> Socket -> ScurryState -> IO ()
 startCom tap sock initSS = do
@@ -177,18 +113,15 @@ startCom tap sock initSS = do
 
 tapSourceThread :: Handle -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 tapSourceThread tap ssRef chan = forever $
-    putStrLn "tapSourceThread" >>
     tapReader tap >>=
     (\x -> frameSwitch ssRef chan (tapDecode x))
 
 sockWriteThread :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockWriteThread sock chan = forever $
-    putStrLn "sockWriteThread" >>
     sockWriter sock chan
 
 sockSourceThread :: Handle -> Socket -> (IORef ScurryState) -> IO ()
 sockSourceThread tap sock ssRef = forever $
-    putStrLn "sockSourceThread" >>
     (sockReader sock) >>=
     (\(addr,msg) -> routeInfo tap ssRef (addr,sockDecode msg))
     
@@ -226,12 +159,12 @@ sockDecode msg = decode msg
 routeInfo :: Handle -> (IORef ScurryState) -> (SockAddr,ScurryMsg) -> IO ()
 routeInfo tap ssRef (srcAddr,msg) = do
     case msg of
-         SFrame (_,frame) -> putStrLn "SFrame" >> tapWriter tap frame
-         SJoin ->            putStrLn "SJoin" >> atomicModifyIORef ssRef updatePeers
-         SKeepAlive ->       putStrLn "SKeepAlive" >> error "SKeepAlive not supported"
-         SNotifyPeer _ ->    error "SNotifyPeer not supported"
-         SRequestPeer ->     error "SRequestPeer not supported"
-         SUnknown ->         error "SUnknown not supported"
+         SFrame (_,frame) -> tapWriter tap frame
+         SJoin            -> atomicModifyIORef ssRef updatePeers
+         SKeepAlive       -> error "SKeepAlive not supported"
+         SNotifyPeer _    -> error "SNotifyPeer not supported"
+         SRequestPeer     -> error "SRequestPeer not supported"
+         SUnknown         -> error "SUnknown not supported"
     where updatePeers ss@(ScurryState ps) = if elem srcAddr ps
                                                then (ss,())
                                                else (ScurryState $ srcAddr : ps,())
