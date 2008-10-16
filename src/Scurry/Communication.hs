@@ -82,7 +82,7 @@ instance Binary SockAddr where
  
     
 -- |Bind the socket to the specified socket address.
--- This specifies the network configuration we're using
+-- This specifies the network configuration we are using
 -- as well.
 prepEndPoint :: SockAddr -> IO Socket
 prepEndPoint ep = do
