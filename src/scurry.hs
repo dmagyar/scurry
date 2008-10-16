@@ -2,7 +2,6 @@ module Main where
 
 import System.Environment
 import System.IO
-import Control.Concurrent
 
 import Network.Socket hiding (send, sendTo, recv, recvFrom, inet_addr, inet_ntoa)
 
@@ -39,8 +38,10 @@ doWork tap mySockAddr yourSockAddrs = do
     local <- prepEndPoint mySockAddr
 
     -- Send a thread off to read from the TAP device
-    forkIO $ localProcessing tap local yourSockAddrs
+    -- forkIO $ localProcessing tap local yourSockAddrs
 
     -- This thread will read from the network socket
-    remoteProcessing tap local
+    -- remoteProcessing tap local
+    
+    startCom tap local (ScurryState yourSockAddrs)
 

@@ -1,8 +1,10 @@
 module Scurry.Communication(
     prepEndPoint,
-    remoteProcessing,
-    localProcessing,
-    debugFrame
+    debugFrame,
+
+    startCom,
+
+    ScurryState(..)
 ) where
 
 
@@ -49,13 +51,12 @@ instance Binary ScurryMsg where
                   3 -> return SRequestPeer            -- SRequestPeer
                   _ -> return SUnknown                -- Unknown Message
     
-    put (SFrame fp) = do putWord8 0
-                         put fp
-    put SJoin = putWord8 1
-    put (SNotifyPeer p) = do putWord8 2
-                             put p
-    put SRequestPeer = putWord8 3
-    put SUnknown = putWord8 255
+    put (SFrame fp)     = putWord8 0 >> put fp
+    put SJoin           = putWord8 1
+    put SKeepAlive      = putWord8 2
+    put (SNotifyPeer p) = putWord8 3 >> put p
+    put SRequestPeer    = putWord8 4
+    put SUnknown        = putWord8 255
 
 instance Binary PortNumber where
     get = liftM PortNum get
@@ -78,6 +79,7 @@ instance Binary SockAddr where
                                           put si
     put (SockAddrUnix s) = do putWord8 2
                               put s
+ 
     
 -- |Bind the socket to the specified socket address.
 -- This specifies the network configuration we're using
@@ -87,6 +89,15 @@ prepEndPoint ep = do
     s <- socket AF_INET Datagram defaultProtocol
     bindSocket s ep
     return s
+
+-- |Takes an ethernet frame pair and prints some debug
+-- information about it.
+debugFrame :: (EthernetHeader,BS.ByteString) -> IO ()
+debugFrame (h,f) = do
+    putStrLn $ concat [(show h)," => Length: ",(show $ BS.length f)]
+
+
+{-
 
 -- |Reads packets off from the local TAP device
 -- and then writes them to the network sockets
@@ -100,12 +111,6 @@ localProcessing tap net ha = forever $ do
 remoteProcessing :: Handle -> Socket -> IO ()
 remoteProcessing tap net = forever $ do
     (readNet net) >>= (writeTAP tap)
-
--- |Takes an ethernet frame pair and prints some debug
--- information about it.
-debugFrame :: (EthernetHeader,BS.ByteString) -> IO ()
-debugFrame (h,f) = do
-    putStrLn $ concat [(show h)," => Length: ",(show $ BS.length f)]
 
 readTAP :: Handle -> IO (EthernetHeader,BS.ByteString)
 readTAP tap = do
@@ -126,6 +131,8 @@ writeNet :: Socket -> [SockAddr] -> (EthernetHeader,BS.ByteString) -> IO ()
 writeNet net has (_,frame) = do
     _ <- mapM (sendTo net (BSS.concat . BS.toChunks $ frame)) has 
     return ()
+
+-}
 
 bsToEthernetTuple :: BS.ByteString -> (EthernetHeader,BS.ByteString)
 bsToEthernetTuple d = (decode d, d)
@@ -158,9 +165,15 @@ bsToEthernetTuple d = (decode d, d)
  -
  -}
 
--- |A thread which synchronizes with the switch thread
--- to read packets from the TAP device and send them 
--- to the world.
+startCom :: Handle -> Socket -> ScurryState -> IO ()
+startCom tap sock initSS = do
+    ssRef <- newIORef initSS
+    chan  <- atomically $ newTChan
+
+    forkIO $ tapSourceThread tap ssRef chan
+    forkIO $ sockWriteThread sock chan
+    sockSourceThread tap sock ssRef
+    
 
 tapSourceThread :: Handle -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 tapSourceThread tap ssRef chan = forever $
@@ -171,13 +184,12 @@ sockWriteThread :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockWriteThread sock chan = forever $
     sockWriter sock chan
 
-sockSourceThread :: Handle -> Socket -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
-sockSourceThread tap sock ssRef chan = forever $
+sockSourceThread :: Handle -> Socket -> (IORef ScurryState) -> IO ()
+sockSourceThread tap sock ssRef = forever $
     (sockReader sock) >>=
     (\(addr,msg) -> routeInfo tap ssRef (addr,sockDecode msg))
     
-
--- tapReader :: (IORef ScurryState) -> 
+tapReader :: Handle -> IO BS.ByteString
 tapReader tap = do
     hWaitForInput tap (-1)
     BS.hGetNonBlocking tap readLength
@@ -185,21 +197,20 @@ tapReader tap = do
 tapDecode :: BS.ByteString -> ScurryMsg
 tapDecode bs = SFrame $ bsToEthernetTuple bs
 
--- frameSwitch :: ScurryMsg -> IO 
 frameSwitch :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> ScurryMsg -> IO ()
 frameSwitch ssRef chan m = do
     (ScurryState peers) <- readIORef ssRef
     mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) peers
 
--- consoleSVC :: (IORef ScurryState) ->
--- keepAliveSVC :: (IORef ScurryState) ->
-
 sockWriter :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockWriter sock chan = do
     (dst,msg) <- atomically $ readTChan chan
+    
+    let sendToAddr = sendTo sock (BSS.concat . BS.toChunks $ encode msg)
+
     case dst of
-         DestSingle addr -> sendTo sock (BSS.concat . BS.toChunks $ encode msg) addr >> return ()
-         _ -> error "Error: I don't support anything except DestSingle yet."
+         DestSingle addr -> sendToAddr addr >> return ()
+         DestList addrs -> mapM_ sendToAddr addrs
 
 sockReader :: Socket -> IO (SockAddr,BS.ByteString)
 sockReader sock = do
@@ -212,8 +223,15 @@ sockDecode msg = decode msg
 routeInfo :: Handle -> (IORef ScurryState) -> (SockAddr,ScurryMsg) -> IO ()
 routeInfo tap ssRef (srcAddr,msg) = do
     case msg of
-         SFrame (hdr,frame) -> tapWriter tap frame
-         _ -> error "Only SFrame messages are supported at this time."
+         SFrame (_,frame) -> tapWriter tap frame
+         SJoin -> atomicModifyIORef ssRef updatePeers
+         SKeepAlive -> error "SKeepAlive not supported"
+         SNotifyPeer _ -> error "SNotifyPeer not supported"
+         SRequestPeer -> error "SRequestPeer not supported"
+         SUnknown -> error "SUnknown not supported"
+    where updatePeers ss@(ScurryState ps) = if elem srcAddr ps
+                                               then (ss,())
+                                               else (ScurryState $ srcAddr : ps,())
 
 tapWriter :: Handle -> BS.ByteString -> IO ()
 tapWriter tap frame = do
