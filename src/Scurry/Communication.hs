@@ -177,15 +177,18 @@ startCom tap sock initSS = do
 
 tapSourceThread :: Handle -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 tapSourceThread tap ssRef chan = forever $
+    putStrLn "tapSourceThread" >>
     tapReader tap >>=
     (\x -> frameSwitch ssRef chan (tapDecode x))
 
 sockWriteThread :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockWriteThread sock chan = forever $
+    putStrLn "sockWriteThread" >>
     sockWriter sock chan
 
 sockSourceThread :: Handle -> Socket -> (IORef ScurryState) -> IO ()
 sockSourceThread tap sock ssRef = forever $
+    putStrLn "sockSourceThread" >>
     (sockReader sock) >>=
     (\(addr,msg) -> routeInfo tap ssRef (addr,sockDecode msg))
     
@@ -223,12 +226,12 @@ sockDecode msg = decode msg
 routeInfo :: Handle -> (IORef ScurryState) -> (SockAddr,ScurryMsg) -> IO ()
 routeInfo tap ssRef (srcAddr,msg) = do
     case msg of
-         SFrame (_,frame) -> tapWriter tap frame
-         SJoin -> atomicModifyIORef ssRef updatePeers
-         SKeepAlive -> error "SKeepAlive not supported"
-         SNotifyPeer _ -> error "SNotifyPeer not supported"
-         SRequestPeer -> error "SRequestPeer not supported"
-         SUnknown -> error "SUnknown not supported"
+         SFrame (_,frame) -> putStrLn "SFrame" >> tapWriter tap frame
+         SJoin ->            putStrLn "SJoin" >> atomicModifyIORef ssRef updatePeers
+         SKeepAlive ->       putStrLn "SKeepAlive" >> error "SKeepAlive not supported"
+         SNotifyPeer _ ->    error "SNotifyPeer not supported"
+         SRequestPeer ->     error "SRequestPeer not supported"
+         SUnknown ->         error "SUnknown not supported"
     where updatePeers ss@(ScurryState ps) = if elem srcAddr ps
                                                then (ss,())
                                                else (ScurryState $ srcAddr : ps,())
