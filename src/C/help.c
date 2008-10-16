@@ -23,15 +23,13 @@ static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu);
 
-int open_tap(ip4_addr_t local_ip)
+int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask)
 {
     struct ifreq ifr_tap;
     int r = 0;
 
     int fd = -1;
     int sock = -1;
-
-    ip4_addr_t local_mask = 0xFFFFFF00;
 
     if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
         return -1;
@@ -51,10 +49,8 @@ int open_tap(ip4_addr_t local_ip)
     if (set_ip(&ifr_tap, sock, local_ip) < 0)
         return -4;
 
-    /* Yargh! Why doesn't this work.
     if (set_mask(&ifr_tap, sock, local_mask) < 0)
         return -5;
-    */
 
     if ( ioctl(sock, SIOCGIFFLAGS, &ifr_tap) < 0)
         return -6;
@@ -97,9 +93,9 @@ static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4)
     memset( &addr, 0, sizeof(addr) );
     addr.sin_addr.s_addr = ip4; /*network byte order*/
     addr.sin_family = AF_INET;
-    memcpy( &ifr->ifr_netmask, &addr, sizeof(struct sockaddr) );
+    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
     
-    if ( ioctl(sock, SIOCGIFNETMASK, ifr) < 0) {
+    if ( ioctl(sock, SIOCSIFNETMASK, ifr) < 0) {
         printf("SIOCSIFNETMASK: %s\n", strerror(errno));
         close(sock);
         return -1;
