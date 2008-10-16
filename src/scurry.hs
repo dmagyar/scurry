@@ -7,7 +7,7 @@ import Network.Socket hiding (send, sendTo, recv, recvFrom, inet_addr, inet_ntoa
 
 import Scurry.Util
 import Scurry.TapConfig
-import Scurry.Communication
+import Scurry.Comm
 import Scurry.Management.Config
 import Scurry.Management.Tracker
 
