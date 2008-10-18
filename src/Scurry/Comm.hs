@@ -36,5 +36,7 @@ startCom tap sock initSS = do
 
     forkIO $ tapSourceThread tap ssRef chan
     forkIO $ sockWriteThread sock chan
+
+    -- Last thread is a continuation of the main thread
     sockSourceThread tap sock ssRef
 
