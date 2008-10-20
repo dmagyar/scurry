@@ -19,6 +19,7 @@ import Scurry.Comm.SockSource
 import Scurry.Comm.SockWrite
 import Scurry.Comm.Util
 import Scurry.State
+import Scurry.KeepAlive
 
 -- |Bind the socket to the specified socket address.
 -- This specifies the network configuration we are using
@@ -34,9 +35,15 @@ startCom tap sock initSS = do
     ssRef <- newIORef initSS
     chan  <- atomically $ newTChan
 
-    forkIO $ tapSourceThread tap ssRef chan
-    forkIO $ sockWriteThread sock chan
+    tst <- forkIO $ tapSourceThread tap ssRef chan
+    swt <- forkIO $ sockWriteThread sock chan
+    sst <- forkIO $ sockSourceThread tap sock ssRef
+
+    -- For debugging
+    labelThread tst "TAP Source Thread"
+    labelThread swt "Socket Write Thread"
+    labelThread sst "Socket Source Thread"
 
     -- Last thread is a continuation of the main thread
-    sockSourceThread tap sock ssRef
+    keepAliveThread ssRef chan
 
