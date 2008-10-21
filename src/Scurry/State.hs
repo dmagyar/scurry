@@ -5,3 +5,4 @@ ScurryState(..)
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 
 data ScurryState = ScurryState [SockAddr]
+    deriving (Show)
