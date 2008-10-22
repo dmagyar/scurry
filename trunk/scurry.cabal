@@ -22,6 +22,7 @@ executable scurry
     build-depends: unix >= 2.3.0.0
     build-depends: json >= 0.3.3
     build-depends: stm >= 2.1.1.0
+    build-depends: parsec >= 3.0.0
 
     hs-source-dirs:     src
     ghc-options:        -Wall -O2 -threaded
