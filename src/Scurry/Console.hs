@@ -12,6 +12,7 @@ import System.Exit
 import Network.Socket hiding (inet_addr,inet_ntoa)
 import Numeric
 
+import Scurry.Console.Parser
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.Util
