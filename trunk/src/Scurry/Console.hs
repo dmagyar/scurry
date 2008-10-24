@@ -10,34 +10,35 @@ import Data.List
 import System.IO
 import System.Exit
 import Network.Socket hiding (inet_addr,inet_ntoa)
-import Numeric
 
 import Scurry.Console.Parser
 import Scurry.Comm.Message
 import Scurry.Comm.Util
-import Scurry.Util
 import Scurry.State
 
 -- Console command interpreter
 
 consoleThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 consoleThread ssRef chan = forever $ do
-    let rssr = readIORef ssRef
     ln <- getLine
 
-    case ln of
-         "peers"    -> rssr >>= (putStrLn . show)
-         "shutdown" -> exitWith ExitSuccess
-         "newpeer"  -> putStrLn "Peer: " >> getLine >>= (\l -> atomicModifyIORef ssRef (newPeer l))
-         u          -> putStrLn $ "Unknown command: " ++ u
+    case (parseConsole ln) of
+         (Left err) -> badCmd err
+         (Right ln') -> goodCmd ln'
 
-newPeer :: String -> ScurryState -> (ScurryState, ())
-newPeer addr state = let (ip,port) = break (== ':') addr
-                         port' = drop 1 port
-                         parsed_ip = inet_addr ip
-                         parsed_port = readDec port'
-                         o = case (parsed_ip,parsed_port) of
-                                  (Just ip',[(port'',_)]) -> addAddr state (SockAddrInet port'' ip')
-                                  _ -> state
-                     in (o,())
+    where goodCmd cmd = case cmd of
+                            Shutdown           -> exitWith ExitSuccess
+                            ListPeers          -> (readIORef ssRef) >>= (putStrLn . show)
+                            (NewPeer ha pn)    -> atomicModifyIORef ssRef (newPeer ha pn)
+                            (RemovePeer ha pn) -> atomicModifyIORef ssRef (delPeer ha pn) 
+          badCmd err = putStrLn $ "Bad Command: " ++ (show err)
+
+newPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
+newPeer ha pn state = let o = addAddr state (SockAddrInet pn ha)
+                      in (o,())
     where addAddr (ScurryState peers) sa = ScurryState $ nub (sa : peers)
+
+delPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
+delPeer ha pn state = (delAddr state (SockAddrInet pn ha),())
+    where delAddr (ScurryState peers) sa = ScurryState $ filter (== sa) peers
+                    

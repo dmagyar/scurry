@@ -7,10 +7,12 @@ import Network.Socket (HostAddress,PortNumber)
 import Text.Parsec
 import Text.Parsec.String
 
+import Scurry.Util
+
 data ConsoleCmd = Shutdown
                 | ListPeers
                 | NewPeer HostAddress PortNumber
-                | RemovePeer
+                | RemovePeer HostAddress PortNumber
     deriving (Show)
 
 parseConsole :: String -> Either ParseError ConsoleCmd
@@ -36,9 +38,43 @@ cmdListPeers = do
 cmdNewPeer :: Parser ConsoleCmd
 cmdNewPeer = do
     string "new"
-    return $ NewPeer 0 0
+    spaces
+    (ip,port) <- ip_port_pair
+    return $ NewPeer ip port
 
 cmdRemovePeer :: Parser ConsoleCmd
 cmdRemovePeer = do
     string "remove"
-    return RemovePeer
+    spaces
+    (ip,port) <- ip_port_pair
+    return $ RemovePeer ip port
+
+{- Mostly helper parsers that don't exist in the Parsec libary -}    
+ip_port_pair :: Parser (HostAddress,PortNumber)
+ip_port_pair = do
+    ip <- ip_str
+    char ':'
+    port <- many1 digit
+
+    let ip'   = inet_addr ip
+        port' = (read port :: Integer)
+
+    if (port' > 65535 || port' < 0)
+       then parserFail "Not a valid port."
+       else case ip' of
+                 (Just ip'') -> return (ip'',fromIntegral port')
+                 Nothing     -> parserFail "Not an ip address."
+
+ip_str :: Parser String
+ip_str = do
+    q1 <- quad
+    char '.'
+    q2 <- quad
+    char '.'
+    q3 <- quad
+    char '.'
+    q4 <- quad
+    return $ let dot = "."
+             in concat [q1,dot,q2,dot,q3,dot,q4]
+    where
+        quad = choice (map (\x -> count x digit) [1..3])
