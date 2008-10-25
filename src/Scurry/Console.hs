@@ -40,5 +40,5 @@ newPeer ha pn state = let o = addAddr state (SockAddrInet pn ha)
 
 delPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
 delPeer ha pn state = (delAddr state (SockAddrInet pn ha),())
-    where delAddr (ScurryState peers) sa = ScurryState $ filter (== sa) peers
+    where delAddr (ScurryState peers) sa = ScurryState $ filter (/= sa) peers
                     
