@@ -77,4 +77,6 @@ ip_str = do
     return $ let dot = "."
              in concat [q1,dot,q2,dot,q3,dot,q4]
     where
-        quad = choice (map (\x -> count x digit) [1..3])
+        quad = choice [try $ count 3 digit,
+                       try $ count 2 digit,
+                       try $ count 1 digit]
