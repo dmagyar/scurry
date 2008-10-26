@@ -19,6 +19,9 @@
 
 #include "help.h"
 
+int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask);
+void close_tap(int tap_fd);
+
 static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu);
@@ -123,3 +126,23 @@ void close_tap(int tap_fd)
         close(tap_fd);
     }
 }
+
+#if 0
+unsigned char[6] get_mac(int tap_fd)
+{
+    struct sockaddr_in addr;
+
+    memset( &addr, 0, sizeof(addr) );
+    addr.sin_addr.s_addr = ip4; /*network byte order*/
+    addr.sin_family = AF_INET;
+    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
+    
+    if ( ioctl(sock, SIOCGIFNETMASK, ifr) < 0) {
+        printf("SIOCSIFNETMASK: %s\n", strerror(errno));
+        close(sock);
+        return -1;
+    }
+
+    return 0;
+}
+#endif
