@@ -31,13 +31,12 @@ main = do
 
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
-        (Right t) -> doWork t mySockAddr yourSockAddrs
+        (Right (t,mac)) -> doWork t mySockAddr (ScurryState yourSockAddrs mac)
 
     where
         tToS (ScurryPeer ip port) = SockAddrInet port ip 
 
-doWork :: Handle -> SockAddr -> [SockAddr] -> IO ()
-doWork tap mySockAddr yourSockAddrs = do
+doWork :: Handle -> SockAddr -> ScurryState -> IO ()
+doWork tap mySockAddr state = do
     local <- prepEndPoint mySockAddr
-    startCom tap local (ScurryState yourSockAddrs)
-
+    startCom tap local state

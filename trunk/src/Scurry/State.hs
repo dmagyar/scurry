@@ -3,6 +3,9 @@ ScurryState(..)
 ) where
 
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
+import Data.Word
 
-data ScurryState = ScurryState [SockAddr]
+type MAC = (Word8,Word8,Word8,Word8,Word8,Word8)
+
+data ScurryState = ScurryState [SockAddr] MAC
     deriving (Show)

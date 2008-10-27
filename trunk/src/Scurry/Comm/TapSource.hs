@@ -25,7 +25,7 @@ tapReader tap = do
 
 frameSwitch :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> ScurryMsg -> IO ()
 frameSwitch ssRef chan m = do
-    (ScurryState peers) <- readIORef ssRef
+    (ScurryState peers _) <- readIORef ssRef
     mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) peers
 
 tapDecode :: BS.ByteString -> ScurryMsg

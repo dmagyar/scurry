@@ -36,9 +36,9 @@ consoleThread ssRef chan = forever $ do
 newPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
 newPeer ha pn state = let o = addAddr state (SockAddrInet pn ha)
                       in (o,())
-    where addAddr (ScurryState peers) sa = ScurryState $ nub (sa : peers)
+    where addAddr (ScurryState peers m ) sa = ScurryState (nub (sa : peers)) m
 
 delPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
 delPeer ha pn state = (delAddr state (SockAddrInet pn ha),())
-    where delAddr (ScurryState peers) sa = ScurryState $ filter (/= sa) peers
+    where delAddr (ScurryState peers m) sa = ScurryState (filter (/= sa) peers) m
                     
