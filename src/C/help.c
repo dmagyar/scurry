@@ -19,14 +19,16 @@
 
 #include "help.h"
 
-int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask);
+int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
+int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti);
 void close_tap(int tap_fd);
 
 static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu);
 
-int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask)
+
+int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
 {
     struct ifreq ifr_tap;
     int r = 0;
@@ -58,14 +60,20 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask)
     if ( ioctl(sock, SIOCGIFFLAGS, &ifr_tap) < 0)
         return -6;
 
+    if ( get_mac(&ifr_tap,sock,ti) < 0)
+        return -7;
+
     ifr_tap.ifr_flags |= IFF_UP;
     ifr_tap.ifr_flags |= IFF_RUNNING;
 
     if (ioctl(sock, SIOCSIFFLAGS, &ifr_tap) < 0)
-        return -7;
+        return -8;
 
     if (set_mtu(&ifr_tap, sock, 1200) < 0)
-        return -8;
+        return -9;
+
+    ti->fd = fd;
+
 
     return fd;
 }
@@ -82,7 +90,6 @@ static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4)
 
     if ( ioctl(sock, SIOCSIFADDR, ifr) < 0) {
         printf("SIOCSIFADDR: %s\n", strerror(errno));
-        close(sock);
         return -1;
     }
 
@@ -100,7 +107,6 @@ static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4)
     
     if ( ioctl(sock, SIOCSIFNETMASK, ifr) < 0) {
         printf("SIOCSIFNETMASK: %s\n", strerror(errno));
-        close(sock);
         return -1;
     }
 
@@ -127,22 +133,18 @@ void close_tap(int tap_fd)
     }
 }
 
-#if 0
-unsigned char[6] get_mac(int tap_fd)
+int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
 {
-    struct sockaddr_in addr;
-
-    memset( &addr, 0, sizeof(addr) );
-    addr.sin_addr.s_addr = ip4; /*network byte order*/
-    addr.sin_family = AF_INET;
-    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
     
-    if ( ioctl(sock, SIOCGIFNETMASK, ifr) < 0) {
-        printf("SIOCSIFNETMASK: %s\n", strerror(errno));
-        close(sock);
+    if ( ioctl(sock, SIOCGIFHWADDR, ifr) < 0) {
+        printf("SIOCGIFHWADDR: %s\n", strerror(errno));
         return -1;
     }
+    else
+    {
+        memcpy(&(ti->mac),&(ifr->ifr_hwaddr.sa_data),6);
+    }
+
 
     return 0;
 }
-#endif

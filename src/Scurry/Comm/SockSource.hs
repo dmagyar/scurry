@@ -34,9 +34,9 @@ routeInfo tap ssRef (srcAddr,msg) = do
          SNotifyPeer _    -> error "SNotifyPeer not supported"
          SRequestPeer     -> error "SRequestPeer not supported"
          SUnknown         -> error "SUnknown not supported"
-    where updatePeers ss@(ScurryState ps) = if elem srcAddr ps
-                                               then (ss,())
-                                               else (ScurryState $ srcAddr : ps,())
+    where updatePeers ss@(ScurryState ps m) = if elem srcAddr ps
+                                                 then (ss,())
+                                                 else (ScurryState (srcAddr : ps) m,())
 
 sockDecode :: BS.ByteString -> ScurryMsg
 sockDecode msg = decode msg
