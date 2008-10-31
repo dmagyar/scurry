@@ -23,10 +23,12 @@ executable scurry
     build-depends: stm >= 2.1.1.0
     build-depends: parsec >= 3.0.0
 
-    -- if os(mingw32)
+    if os(mingw32)
+        c-sources:          src/C/help-win.c
 
     if os(linux)
         build-depends: unix >= 2.3.0.0
+        c-sources:          src/C/help-linux.c
 
     hs-source-dirs:     src
     ghc-options:        -Wall -O2 -threaded
