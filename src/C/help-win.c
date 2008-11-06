@@ -1,3 +1,9 @@
+/* NOTE: This code is a direct copy of the 
+ * Linux code. I haven't even begun to make
+ * scurry run on Windows. If you happen to
+ * know a good way to do this, please let 
+ * me know. */
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
