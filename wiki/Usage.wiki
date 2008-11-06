@@ -1,0 +1,29 @@
+#summary How to use Scurry
+
+= Introduction =
+
+This is a short description which will help you get Scurry running on various platforms.
+
+
+= Linux =
+  * Checkout the scurry project.
+    * svn checkout http://scurry.googlecode.com/svn/trunk/ scurry
+  * cd scurry
+  * Edit 'files/config.json'
+    * The "vpn" object defines the IP and netmask which will be used on the VPN.
+    * The "network" object defines the IP and port upon which scurry will listen for connections from other peers.
+  * Edit 'files/tracker.json'
+    * This is an array of peers.
+    * Each peer in the array needs a host address and a port number.
+    * Scurry will attempt to open communication channels with these peers when it starts.
+  * runhaskell Setup configure
+  * runhaskell Setup build
+  * Since we're creating a network device, we'll need to run the following command as root.
+  * sudo ./dist/build/scurry/scurry files/config.json files/tracker.json
+  * Once the Scurry starts, you'll notice that you have a new tapX device when you run ifconfig. It will have the netmask and IP address set in 'files/config.json'.
+
+= Windows =
+Currently, Windows is not supported. It's in the works.
+
+= OS/X =
+Currently, OS/X is not supported. It's in the works.
