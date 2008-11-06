@@ -32,5 +32,4 @@ executable scurry
 
     hs-source-dirs:     src
     ghc-options:        -Wall -O2 -threaded
-    c-sources:          src/C/help.c
     main-is:            scurry.hs
