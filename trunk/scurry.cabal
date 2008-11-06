@@ -11,7 +11,7 @@ Copyright:     John Van Enk, 2008
 Cabal-Version: >= 1.2.0
 Build-Type:    Simple
 
-extra-source-files: src/help.h
+extra-source-files: src/C/help.h
 
 executable scurry
     build-depends: base >= 3.0.0.0
@@ -29,6 +29,11 @@ executable scurry
     if os(linux)
         build-depends: unix >= 2.3.0.0
         c-sources:          src/C/help-linux.c
+
+    if os(darwin)
+        build-depends: unix >= 2.3.0.0
+        c-sources:          src/C/help-darwin.c
+        c-sources:          src/C/tun_ioctls.h
 
     hs-source-dirs:     src
     ghc-options:        -Wall -O2 -threaded
