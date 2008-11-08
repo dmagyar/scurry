@@ -1,12 +1,13 @@
-/* NOTE: Address setting of the adapter is not implemented yet 
-most of this code is a direct copy of the qemu tap code
+/* NOTE: most of this code is a direct copy of the qemu tap code
 */
 
-
 #include <stdio.h>
+#include <wchar.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winioctl.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include <io.h>
 
 //=============
@@ -261,6 +262,19 @@ static int get_device_guid(
     return 0;
 }
 
+static DWORD get_interface_index (const char *guid)
+{
+  ULONG index;
+  DWORD status;
+  wchar_t wbuf[256];
+  snwprintf (wbuf, sizeof (wbuf), L"\\DEVICE\\TCPIP_%S", guid);
+  wbuf [sizeof(wbuf) - 1] = 0;
+  if ((status = GetAdapterIndex (wbuf, &index)) != NO_ERROR)
+    return (DWORD)~0;
+  else
+    return index;
+}
+
 static int tap_win32_set_status(HANDLE handle, int status)
 {
     unsigned long len = 0;
@@ -272,13 +286,16 @@ static int tap_win32_set_status(HANDLE handle, int status)
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
 {
-    // this function needs some pretty heavy cleanup
+    // #TODO this function needs some pretty heavy cleanup
     const char *prefered_name = NULL;
       
     char device_path[256];
     char device_guid[0x100];
     int rc;
     HANDLE handle;
+    DWORD index;
+    ULONG ipapi_context;
+    ULONG ipapi_instance;
     BOOL bret;
     char name_buffer[0x100] = {0, };
     struct {
@@ -294,6 +311,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     rc = get_device_guid(device_guid, sizeof(device_guid), name_buffer, sizeof(name_buffer));
     if (rc)
         return -1;
+    index = get_interface_index(device_guid);
 
     snprintf (device_path, sizeof(device_path), "%s%s%s",
               USERMODEDEVICEDIR,
@@ -326,20 +344,21 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
       return -4;
     }
     
-    // if (AddIPAddress (htonl(local_ip),
-				    // htonl(local_mask),
-				    // index,
-				    // &tt->ipapi_context,
-				    // &tt->ipapi_instance) != NO_ERROR)
-      // return -5;
+    if (AddIPAddress (htonl(local_ip),
+                      htonl(local_mask),
+                      index,
+                      &ipapi_context,
+                      &ipapi_instance) != NO_ERROR)
+      return -5;
     
     if (!tap_win32_set_status(handle, TRUE)) {
         return -6;
     }
     
-    
-    
     ti->fd = _open_osfhandle ((unsigned int)handle, 0);
+    
+    if (ti->fd <0)
+      return -10 + ti->fd;    
     
     return ti->fd;
 }
@@ -347,6 +366,6 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
 
 void close_tap(int tap_fd)
 {
-   // we should have something here to delete the address that we added to the adapter
+   // #TODO we should have something here to delete the address that we added to the adapter
 }
 
