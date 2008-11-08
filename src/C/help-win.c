@@ -1,156 +1,352 @@
-/* NOTE: This code is a direct copy of the 
- * Linux code. I haven't even begun to make
- * scurry run on Windows. If you happen to
- * know a good way to do this, please let 
- * me know. */
+/* NOTE: Address setting of the adapter is not implemented yet 
+most of this code is a direct copy of the qemu tap code
+*/
 
-#include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/if.h>
-#include <linux/if_tun.h>
-#include <net/route.h>
-#include <netinet/if_ether.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <stdarg.h>
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winioctl.h>
+#include <io.h>
+
+//=============
+// TAP IOCTLs
+//=============
+
+#define TAP_CONTROL_CODE(request,method) \
+  CTL_CODE (FILE_DEVICE_UNKNOWN, request, method, FILE_ANY_ACCESS)
+
+#define TAP_IOCTL_GET_MAC               TAP_CONTROL_CODE (1, METHOD_BUFFERED)
+#define TAP_IOCTL_GET_VERSION           TAP_CONTROL_CODE (2, METHOD_BUFFERED)
+#define TAP_IOCTL_GET_MTU               TAP_CONTROL_CODE (3, METHOD_BUFFERED)
+#define TAP_IOCTL_GET_INFO              TAP_CONTROL_CODE (4, METHOD_BUFFERED)
+#define TAP_IOCTL_CONFIG_POINT_TO_POINT TAP_CONTROL_CODE (5, METHOD_BUFFERED)
+#define TAP_IOCTL_SET_MEDIA_STATUS      TAP_CONTROL_CODE (6, METHOD_BUFFERED)
+#define TAP_IOCTL_CONFIG_DHCP_MASQ      TAP_CONTROL_CODE (7, METHOD_BUFFERED)
+#define TAP_IOCTL_GET_LOG_LINE          TAP_CONTROL_CODE (8, METHOD_BUFFERED)
+#define TAP_IOCTL_CONFIG_DHCP_SET_OPT   TAP_CONTROL_CODE (9, METHOD_BUFFERED)
+
+//=================
+// Registry keys
+//=================
+
+#define ADAPTER_KEY "SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
+
+#define NETWORK_CONNECTIONS_KEY "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
+
+//======================
+// Filesystem prefixes
+//======================
+
+#define USERMODEDEVICEDIR "\\\\.\\Global\\"
+#define TAPSUFFIX         ".tap"
+
+
+//======================
+// Compile time configuration
+//======================
+
+//#define DEBUG_TAP_WIN32 1
+
+#define TUN_ASYNCHRONOUS_WRITES 1
+
+#define TUN_BUFFER_SIZE 1560
+#define TUN_MAX_BUFFER_COUNT 32
+ 
 
 #include "help.h"
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
-int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti);
 void close_tap(int tap_fd);
 
-static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4);
-static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4);
-static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu);
 
+static int is_tap_win32_dev(const char *guid)
+{
+    HKEY netcard_key;
+    LONG status;
+    DWORD len;
+    int i = 0;
+
+    status = RegOpenKeyEx(
+        HKEY_LOCAL_MACHINE,
+        ADAPTER_KEY,
+        0,
+        KEY_READ,
+        &netcard_key);
+
+    if (status != ERROR_SUCCESS) {
+        return FALSE;
+    }
+
+    for (;;) {
+        char enum_name[256];
+        char unit_string[256];
+        HKEY unit_key;
+        char component_id_string[] = "ComponentId";
+        char component_id[256];
+        char net_cfg_instance_id_string[] = "NetCfgInstanceId";
+        char net_cfg_instance_id[256];
+        DWORD data_type;
+
+        len = sizeof (enum_name);
+        status = RegEnumKeyEx(
+            netcard_key,
+            i,
+            enum_name,
+            &len,
+            NULL,
+            NULL,
+            NULL,
+            NULL);
+
+        if (status == ERROR_NO_MORE_ITEMS)
+            break;
+        else if (status != ERROR_SUCCESS) {
+            return FALSE;
+        }
+
+        snprintf (unit_string, sizeof(unit_string), "%s\\%s",
+                  ADAPTER_KEY, enum_name);
+
+        status = RegOpenKeyEx(
+            HKEY_LOCAL_MACHINE,
+            unit_string,
+            0,
+            KEY_READ,
+            &unit_key);
+
+        if (status != ERROR_SUCCESS) {
+            return FALSE;
+        } else {
+            len = sizeof (component_id);
+            status = RegQueryValueEx(
+                unit_key,
+                component_id_string,
+                NULL,
+                &data_type,
+                component_id,
+                &len);
+
+            if (!(status != ERROR_SUCCESS || data_type != REG_SZ)) {
+                len = sizeof (net_cfg_instance_id);
+                status = RegQueryValueEx(
+                    unit_key,
+                    net_cfg_instance_id_string,
+                    NULL,
+                    &data_type,
+                    net_cfg_instance_id,
+                    &len);
+
+                if (status == ERROR_SUCCESS && data_type == REG_SZ) {
+                    if (/* !strcmp (component_id, TAP_COMPONENT_ID) &&*/
+                        !strcmp (net_cfg_instance_id, guid)) {
+                        RegCloseKey (unit_key);
+                        RegCloseKey (netcard_key);
+                        return TRUE;
+                    }
+                }
+            }
+            RegCloseKey (unit_key);
+        }
+        ++i;
+    }
+
+    RegCloseKey (netcard_key);
+    return FALSE;
+}
+
+static int get_device_guid(
+    char *name,
+    int name_size,
+    char *actual_name,
+    int actual_name_size)
+{
+    LONG status;
+    HKEY control_net_key;
+    DWORD len;
+    int i = 0;
+    int stop = 0;
+
+    status = RegOpenKeyEx(
+        HKEY_LOCAL_MACHINE,
+        NETWORK_CONNECTIONS_KEY,
+        0,
+        KEY_READ,
+        &control_net_key);
+
+    if (status != ERROR_SUCCESS) {
+        return -1;
+    }
+
+    while (!stop)
+    {
+        char enum_name[256];
+        char connection_string[256];
+        HKEY connection_key;
+        char name_data[256];
+        DWORD name_type;
+        const char name_string[] = "Name";
+
+        len = sizeof (enum_name);
+        status = RegEnumKeyEx(
+            control_net_key,
+            i,
+            enum_name,
+            &len,
+            NULL,
+            NULL,
+            NULL,
+            NULL);
+
+        if (status == ERROR_NO_MORE_ITEMS)
+            break;
+        else if (status != ERROR_SUCCESS) {
+            return -1;
+        }
+
+        snprintf(connection_string,
+             sizeof(connection_string),
+             "%s\\%s\\Connection",
+             NETWORK_CONNECTIONS_KEY, enum_name);
+
+        status = RegOpenKeyEx(
+            HKEY_LOCAL_MACHINE,
+            connection_string,
+            0,
+            KEY_READ,
+            &connection_key);
+
+        if (status == ERROR_SUCCESS) {
+            len = sizeof (name_data);
+            status = RegQueryValueEx(
+                connection_key,
+                name_string,
+                NULL,
+                &name_type,
+                name_data,
+                &len);
+
+            if (status != ERROR_SUCCESS || name_type != REG_SZ) {
+                    return -1;
+            }
+            else {
+                if (is_tap_win32_dev(enum_name)) {
+                    snprintf(name, name_size, "%s", enum_name);
+                    if (actual_name) {
+                        if (strcmp(actual_name, "") != 0) {
+                            if (strcmp(name_data, actual_name) != 0) {
+                                RegCloseKey (connection_key);
+                                ++i;
+                                continue;
+                            }
+                        }
+                        else {
+                            snprintf(actual_name, actual_name_size, "%s", name_data);
+                        }
+                    }
+                    stop = 1;
+                }
+            }
+
+            RegCloseKey (connection_key);
+        }
+        ++i;
+    }
+
+    RegCloseKey (control_net_key);
+
+    if (stop == 0)
+        return -1;
+
+    return 0;
+}
+
+static int tap_win32_set_status(HANDLE handle, int status)
+{
+    unsigned long len = 0;
+
+    return DeviceIoControl(handle, TAP_IOCTL_SET_MEDIA_STATUS,
+                &status, sizeof (status),
+                &status, sizeof (status), &len, NULL);
+}
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
 {
-    struct ifreq ifr_tap;
-    int r = 0;
+    // this function needs some pretty heavy cleanup
+    const char *prefered_name = NULL;
+      
+    char device_path[256];
+    char device_guid[0x100];
+    int rc;
+    HANDLE handle;
+    BOOL bret;
+    char name_buffer[0x100] = {0, };
+    struct {
+        unsigned long major;
+        unsigned long minor;
+        unsigned long debug;
+    } version;
+    long len;
 
-    int fd = -1;
-    int sock = -1;
+    if (prefered_name != NULL)
+        snprintf(name_buffer, sizeof(name_buffer), "%s", prefered_name);
 
-    if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
+    rc = get_device_guid(device_guid, sizeof(device_guid), name_buffer, sizeof(name_buffer));
+    if (rc)
         return -1;
 
-    memset(&ifr_tap, 0, sizeof(ifr_tap));
+    snprintf (device_path, sizeof(device_path), "%s%s%s",
+              USERMODEDEVICEDIR,
+              device_guid,
+              TAPSUFFIX);
 
-    /* setup tap */
-    ifr_tap.ifr_flags = IFF_TAP | IFF_NO_PI;
+    handle = CreateFile (
+        device_path,
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        0,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
+        0 );
 
-    if ((ioctl(fd, TUNSETIFF, (void *)&ifr_tap)) < 0)
+    if (handle == INVALID_HANDLE_VALUE) {
         return -2;
-    
-    /* setup ip */
-    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    }
+
+    bret = DeviceIoControl(handle, TAP_IOCTL_GET_VERSION,
+                           &version, sizeof (version),
+                           &version, sizeof (version), &len, NULL);
+
+    if (bret == FALSE) {
+        CloseHandle(handle);
         return -3;
-
-    if (set_ip(&ifr_tap, sock, local_ip) < 0)
-        return -4;
-
-    if (set_mask(&ifr_tap, sock, local_mask) < 0)
-        return -5;
-
-    if ( ioctl(sock, SIOCGIFFLAGS, &ifr_tap) < 0)
-        return -6;
-
-    if ( get_mac(&ifr_tap,sock,ti) < 0)
-        return -7;
-
-    ifr_tap.ifr_flags |= IFF_UP;
-    ifr_tap.ifr_flags |= IFF_RUNNING;
-
-    if (ioctl(sock, SIOCSIFFLAGS, &ifr_tap) < 0)
-        return -8;
-
-    if (set_mtu(&ifr_tap, sock, 1200) < 0)
-        return -9;
-
-    ti->fd = fd;
-
-
-    return fd;
-}
-
-static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4)
-{
-    struct sockaddr_in addr;
-
-    /* set the IP of this end point of tunnel */
-    memset( &addr, 0, sizeof(addr) );
-    addr.sin_addr.s_addr = ip4; /*network byte order*/
-    addr.sin_family = AF_INET;
-    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
-
-    if ( ioctl(sock, SIOCSIFADDR, ifr) < 0) {
-        printf("SIOCSIFADDR: %s\n", strerror(errno));
-        return -1;
     }
-
-    return 0; 
-}
-
-static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4)
-{
-    struct sockaddr_in addr;
-
-    memset( &addr, 0, sizeof(addr) );
-    addr.sin_addr.s_addr = ip4; /*network byte order*/
-    addr.sin_family = AF_INET;
-    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
     
-    if ( ioctl(sock, SIOCSIFNETMASK, ifr) < 0) {
-        printf("SIOCSIFNETMASK: %s\n", strerror(errno));
-        return -1;
+    if(!DeviceIoControl(handle, TAP_IOCTL_GET_MAC, ti->mac, 6, ti->mac, 6, &len, 0)) {
+      return -4;
     }
-
-    return 0;
+    
+    // if (AddIPAddress (htonl(local_ip),
+				    // htonl(local_mask),
+				    // index,
+				    // &tt->ipapi_context,
+				    // &tt->ipapi_instance) != NO_ERROR)
+      // return -5;
+    
+    if (!tap_win32_set_status(handle, TRUE)) {
+        return -6;
+    }
+    
+    
+    
+    ti->fd = _open_osfhandle ((unsigned int)handle, 0);
+    
+    return ti->fd;
 }
 
-static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu)
-{
-    /* Set the MTU of the tap interface */
-    ifr->ifr_mtu = mtu; 
-    if (ioctl(sock, SIOCSIFMTU, ifr) < 0)  {
-        printf("SIOCSIFMTU: %s\n", strerror(errno));
-        return -1;
-    }
-
-    return 0;
-}
 
 void close_tap(int tap_fd)
 {
-    if (0 <= tap_fd) 
-    {
-        close(tap_fd);
-    }
+   // we should have something here to delete the address that we added to the adapter
 }
 
-int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
-{
-    
-    if ( ioctl(sock, SIOCGIFHWADDR, ifr) < 0) {
-        printf("SIOCGIFHWADDR: %s\n", strerror(errno));
-        return -1;
-    }
-    else
-    {
-        memcpy(&(ti->mac),&(ifr->ifr_hwaddr.sa_data),6);
-    }
-
-
-    return 0;
-}

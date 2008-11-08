@@ -46,20 +46,21 @@ instance Binary SockAddr where
     get = do tag <- getWord8
              case tag of
                   0 -> liftM2 SockAddrInet get get
-                  1 -> liftM4 SockAddrInet6 get get get get
-                  2 -> liftM SockAddrUnix get
+                  -- 1 -> liftM4 SockAddrInet6 get get get get -- #Job removed, not compatable with windows
+                  -- 2 -> liftM SockAddrUnix get
                   _ -> error "Not a SockAddr"
     put (SockAddrInet pn ha) =
         do putWord8 0
            put pn
            put ha
-    put (SockAddrInet6 pn fi ha si) =
-        do putWord8 1
-           put pn
-           put fi
-           put ha
-           put si
-    put (SockAddrUnix s) =
-        do putWord8 2
-           put s
+    -- #Job - removed, not compatable with windows
+    -- put (SockAddrInet6 pn fi ha si) =
+        -- do putWord8 1
+           -- put pn
+           -- put fi
+           -- put ha
+           -- put si
+    -- put (SockAddrUnix s) =
+        -- do putWord8 2
+           -- put s
 
