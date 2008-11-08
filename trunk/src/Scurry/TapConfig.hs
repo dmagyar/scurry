@@ -11,7 +11,7 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import System.Posix.Types
 import System.IO
-import System.Posix.IO
+-- import System.Posix.IO #Job - removed, doesn't work on windows
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Data.Word
 

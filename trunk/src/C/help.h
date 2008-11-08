@@ -1,7 +1,7 @@
 #ifndef __HELP_HASKELL_VPN__
 #define __HELP_HASKELL_VPN__ __HELP_HASKELL_VPN__
 
-typedef u_int32_t ip4_addr_t;
+typedef uint32_t ip4_addr_t; // #Job - changed to uint32_t as it is more cross platform compatable (and doesn't work on windows)
 
 struct tap_info {
     int fd;
