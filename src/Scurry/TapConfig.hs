@@ -9,9 +9,7 @@ import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
-import System.Posix.Types
 import System.IO
--- import System.Posix.IO
 import GHC.Handle
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Data.Word
@@ -67,4 +65,4 @@ open_tap addr mask = do
                 return $ Right (h,mac)
 
 foreign import ccall "help.h open_tap" open_tap_ffi :: CUInt -> CUInt -> (Ptr TapInfo) -> IO CInt
-foreign import ccall "help.h close_tap" close_tap_ffi :: CInt -> IO ()
+{- foreign import ccall "help.h close_tap" close_tap_ffi :: CInt -> IO () -}

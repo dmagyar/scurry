@@ -3,7 +3,7 @@ module Scurry.Comm.Message(
     ScurryMsg(..),
 ) where
 
-import Control.Monad (liftM,liftM2,liftM4)
+import Control.Monad (liftM,liftM2)
 import Data.Binary
 import qualified Data.ByteString.Lazy as BS
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
