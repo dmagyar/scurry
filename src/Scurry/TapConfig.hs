@@ -11,7 +11,8 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import System.Posix.Types
 import System.IO
-import System.Posix.IO
+-- import System.Posix.IO
+import GHC.Handle
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Data.Word
 
@@ -51,7 +52,7 @@ getTapHandle ip_str mask_str = do
     open_tap ip mask
 
 closeTapHandle :: Handle -> IO ()
-closeTapHandle tap = (handleToFd tap) >>= (close_tap_ffi . toEnum . fromEnum)
+closeTapHandle tap = hClose tap -- (handleToFd tap) >>= (close_tap_ffi . toEnum . fromEnum)
 
 open_tap :: HostAddress -> HostAddress -> IO (Either CInt (Handle,MAC))
 open_tap addr mask = do
@@ -62,7 +63,7 @@ open_tap addr mask = do
 
     if (res < 0)
         then return (Left res)
-        else do h <- fdToHandle (Fd tap)
+        else do h <- fdToHandle tap -- (Fd tap)
                 return $ Right (h,mac)
 
 foreign import ccall "help.h open_tap" open_tap_ffi :: CUInt -> CUInt -> (Ptr TapInfo) -> IO CInt
