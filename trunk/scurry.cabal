@@ -25,6 +25,7 @@ executable scurry
 
     if os(mingw32)
         c-sources:          src/C/help-win.c
+        extra-libraries:    Iphlpapi
 
     if os(linux)
         build-depends: unix >= 2.3.0.0
