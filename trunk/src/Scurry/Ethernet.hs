@@ -1,5 +1,0 @@
-module Scurry.Ethernet (
-) where
-
-
-

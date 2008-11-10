@@ -14,7 +14,6 @@ import Network.Socket hiding (inet_addr,inet_ntoa)
 import Scurry.Console.Parser
 import Scurry.Comm.Message
 import Scurry.Comm.Util
-import Scurry.State
 import Scurry.Types
 
 -- Console command interpreter
