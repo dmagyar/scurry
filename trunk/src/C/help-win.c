@@ -9,6 +9,7 @@
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
 #include <io.h>
+#include <Fcntl.h>
 
 //=============
 // TAP IOCTLs
@@ -139,7 +140,7 @@ static int is_tap_win32_dev(const char *guid)
                     &len);
 
                 if (status == ERROR_SUCCESS && data_type == REG_SZ) {
-                    if (/* !strcmp (component_id, TAP_COMPONENT_ID) &&*/
+                    if (!strcmp (component_id, "tap0801") &&
                         !strcmp (net_cfg_instance_id, guid)) {
                         RegCloseKey (unit_key);
                         RegCloseKey (netcard_key);
@@ -289,6 +290,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     // #TODO this function needs some pretty heavy cleanup
     const char *prefered_name = NULL;
       
+    int err;
     char device_path[256];
     char device_guid[0x100];
     int rc;
@@ -344,18 +346,21 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
       return -4;
     }
     
-    if (AddIPAddress (htonl(local_ip),
-                      htonl(local_mask),
+    if ((err = AddIPAddress (local_ip,
+                      local_mask,
                       index,
                       &ipapi_context,
-                      &ipapi_instance) != NO_ERROR)
+                      &ipapi_instance)) != NO_ERROR)
+    {
+      printf("-5 Reason: %d\n", err);
       return -5;
+    }
     
     if (!tap_win32_set_status(handle, TRUE)) {
         return -6;
     }
     
-    ti->fd = _open_osfhandle ((unsigned int)handle, 0);
+    ti->fd = _open_osfhandle ((long) handle, 0);
     
     if (ti->fd <0)
       return -10 + ti->fd;    
