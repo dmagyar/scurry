@@ -14,6 +14,7 @@ import Network.Socket.ByteString
 import Scurry.State
 import Scurry.Comm.Message
 import Scurry.Comm.Util
+import Scurry.Types
 
 sockSourceThread :: Handle -> Socket -> (IORef ScurryState) -> IO ()
 sockSourceThread tap sock ssRef = forever $

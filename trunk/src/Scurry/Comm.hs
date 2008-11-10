@@ -21,6 +21,7 @@ import Scurry.Comm.Util
 import Scurry.State
 import Scurry.KeepAlive
 import Scurry.Console
+import Scurry.Types
 
 -- |Bind the socket to the specified socket address.
 -- This specifies the network configuration we are using

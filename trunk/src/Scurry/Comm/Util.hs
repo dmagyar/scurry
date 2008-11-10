@@ -1,15 +1,15 @@
 module Scurry.Comm.Util (
-readLength,
-DestAddr(..),
-debugFrame,
-bsToEthernetTuple,
+    readLength,
+    DestAddr(..),
+    debugFrame,
+    bsToEthernetTuple,
 ) where
 
 import Data.Binary
 import qualified Data.ByteString.Lazy as BS
 import Network.Socket (SockAddr(..))
 
-import Scurry.Ethernet
+import Scurry.Types
 
 readLength :: Int
 readLength = 1500
