@@ -6,6 +6,7 @@ module Scurry.TapConfig(
 ) where
 
 import Foreign.C.Types
+import Foreign.C.String
 import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
@@ -66,3 +67,5 @@ open_tap addr mask = do
 
 foreign import ccall "help.h open_tap" open_tap_ffi :: CUInt -> CUInt -> (Ptr TapInfo) -> IO CInt
 {- foreign import ccall "help.h close_tap" close_tap_ffi :: CInt -> IO () -}
+foreign import ccall "help.h read_tap" read_tap_ffi :: CInt -> CString -> CInt -> CInt
+foreign import ccall "help.h write_tap" write_tap_ffi :: CInt -> CString -> CInt -> CInt

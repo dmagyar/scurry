@@ -11,4 +11,7 @@ struct tap_info {
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
 void close_tun(int tun_fd);
 
+
+int read_tap(int fd, char * buf, int len);
+int write_tap(int fd, const char * buf, int len);
 #endif /* __HELP_HASKELL_VPN__ */
