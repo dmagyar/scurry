@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -147,4 +146,15 @@ int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
 
 
     return 0;
+}
+
+/* I HATE WINDOWS IT SUCKS SO HARD AHHH!! */
+int read_tap(int fd, char * buf, int len)
+{
+    return read(fd,buf,len);
+}
+
+int write_tap(int fd, const char * buf, int len)
+{
+    return write(fd,buf,len);
 }
