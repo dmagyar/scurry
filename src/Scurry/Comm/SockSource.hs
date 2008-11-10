@@ -11,7 +11,6 @@ import System.IO
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
 
-import Scurry.State
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.Types

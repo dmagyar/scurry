@@ -3,7 +3,6 @@ module Scurry.Comm(
     debugFrame,
     startCom,
     module Scurry.Comm.Message,
-    module Scurry.State,
 ) where
 
 
@@ -18,7 +17,6 @@ import Scurry.Comm.TapSource
 import Scurry.Comm.SockSource
 import Scurry.Comm.SockWrite
 import Scurry.Comm.Util
-import Scurry.State
 import Scurry.KeepAlive
 import Scurry.Console
 import Scurry.Types

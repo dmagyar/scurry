@@ -11,7 +11,6 @@ import GHC.Conc
 
 import Scurry.Comm.Message
 import Scurry.Comm.Util
-import Scurry.State
 import Scurry.Types
 
 tapSourceThread :: Handle -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()

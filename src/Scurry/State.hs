@@ -1,5 +1,0 @@
-module Scurry.State (
-) where
-
-
-
