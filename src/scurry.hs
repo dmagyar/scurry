@@ -10,6 +10,7 @@ import Scurry.TapConfig
 import Scurry.Comm
 import Scurry.Management.Config
 import Scurry.Management.Tracker
+import Scurry.Types
 
 main :: IO ()
 main = do 

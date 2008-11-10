@@ -1,19 +1,12 @@
 module Scurry.Console.Parser (
-    ConsoleCmd(..),
     parseConsole
 ) where
 
 import Network.Socket (HostAddress,PortNumber)
 import Text.Parsec
 import Text.Parsec.String
-
 import Scurry.Util
-
-data ConsoleCmd = Shutdown
-                | ListPeers
-                | NewPeer HostAddress PortNumber
-                | RemovePeer HostAddress PortNumber
-    deriving (Show)
+import Scurry.Types
 
 parseConsole :: String -> Either ParseError ConsoleCmd
 parseConsole = parse consoleCmd "Console"

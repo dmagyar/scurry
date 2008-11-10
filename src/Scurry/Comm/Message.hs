@@ -8,7 +8,7 @@ import Data.Binary
 import qualified Data.ByteString.Lazy as BS
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 
-import Scurry.Ethernet
+import Scurry.Types
 
 -- |These are the messages we get across the network.
 -- They are the management and data protocol.

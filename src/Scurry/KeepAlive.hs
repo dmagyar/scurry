@@ -10,6 +10,7 @@ import GHC.Conc
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.State
+import Scurry.Types
 
 msToS :: Int -> Int
 msToS = (* 1000000)
