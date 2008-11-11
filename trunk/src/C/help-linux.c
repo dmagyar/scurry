@@ -150,10 +150,14 @@ int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
 /* I HATE WINDOWS IT SUCKS SO HARD AHHH!! */
 int read_tap(union tap_desc * td, char * buf, int len)
 {
-    return read(td->desc,buf,len);
+    int ret = read(td->desc,buf,len);
+    printf("Read %d bytes.\n", ret);
+    return ret;
 }
 
 int write_tap(union tap_desc * td, const char * buf, int len)
 {
-    return write(td->desc,buf,len);
+    int ret = write(td->desc,buf,len);
+    printf("Wrote %d bytes.\n", ret);
+    return ret;
 }
