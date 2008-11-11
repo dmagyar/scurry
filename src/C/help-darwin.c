@@ -1,20 +1,19 @@
+#include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <net/route.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <net/if.h>
 #include <net/if_dl.h>
+#include <net/route.h>
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
-#include <netinet/ip.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <ifaddrs.h>
 
@@ -25,10 +24,8 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
 int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti);
 void close_tap(int tap_fd);
 
-static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4);
-static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4);
+static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip, ip4_addr_t mask);
 static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu);
-
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
 {
@@ -38,13 +35,13 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     int fd = -1;
     int sock = -1;
 
-    if ((fd = open("/dev/tap2", O_RDWR)) < 0)
+    if ((fd = open("/dev/tap0", O_RDWR)) < 0)
         return -1;
 
     memset(&ifr_tap, 0, sizeof(ifr_tap));
 
     /* setup tap */
-    strncpy(ifr_tap.ifr_name, "tap2", IFNAMSIZ);
+    strncpy(ifr_tap.ifr_name, "tap0", IFNAMSIZ);
     
     /*
     if ((ioctl(fd, TUNSIFHEAD, (void *)&ifr_tap)) < 0)
@@ -55,16 +52,13 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
         return -3;
 
-    if (set_mask(&ifr_tap, sock, local_mask) < 0)
-        return -5;
-
-    if (set_ip(&ifr_tap, sock, local_ip) < 0)
+    if (set_ip(&ifr_tap, sock, local_ip, local_mask) < 0)
         return -4;
 
     if ( ioctl(sock, SIOCGIFFLAGS, &ifr_tap) < 0)
         return -6;
 
-    if ( get_mac(&ifr_tap,sock,ti) < 0)
+    if ( get_mac(&ifr_tap, sock, ti) < 0)
         return -7;
 
     ifr_tap.ifr_flags |= IFF_UP;
@@ -76,35 +70,32 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     if (set_mtu(&ifr_tap, sock, 1200) < 0)
         return -9;
 
-    ti->desc = fd;
-
+    ti->desc->desc = fd;
 
     return fd;
 }
 
-static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4)
+static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip, ip4_addr_t mask)
 {
-    ifr->ifr_addr.sa_family = AF_INET;
-    ifr->ifr_addr.sa_len = 4;
-
-    memcpy(ifr->ifr_addr.sa_data, &ip4, 4);
-
-    if ( ioctl(sock, SIOCSIFADDR, ifr) < 0) {
-        printf("SIOCSIFADDR: %s\n", strerror(errno));
-        return -1;
-    }
-
-    return 0; 
-}
-
-static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4)
-{
-    ifr->ifr_addr.sa_family = AF_INET;
-    ifr->ifr_addr.sa_len = 4;
-    memcpy(ifr->ifr_addr.sa_data, &ip4, 4);
+    /* Setting a single address of an interface is depreciated. Now uses ifaliasreq and it is done in one call */
+    struct ifaliasreq ifa;
+    struct sockaddr_in *in;
     
-    if ( ioctl(sock, SIOCSIFADDR, ifr) < 0) {
-        printf("SIOCSIFNETMASK: %s\n", strerror(errno));
+    memset(&ifa, 0, sizeof(ifa));
+    strcpy(ifa.ifra_name, ifr->ifr_name);
+    
+    in = (struct sockaddr_in *) &ifa.ifra_addr;
+	in->sin_family = AF_INET;
+	in->sin_len = sizeof(ifa.ifra_addr);
+	in->sin_addr.s_addr = ip;
+	
+	in = (struct sockaddr_in *) &ifa.ifra_mask;
+	in->sin_family = AF_INET;
+	in->sin_len = sizeof(ifa.ifra_mask);
+	in->sin_addr.s_addr = mask;
+    
+    if ( ioctl(sock, SIOCSIFADDR, &ifa) < 0) {
+        printf("SIOCAIFADDR: %s\n", strerror(errno));
         return -1;
     }
 
