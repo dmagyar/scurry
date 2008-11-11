@@ -19,9 +19,11 @@ import Scurry.Comm.Util
 import Scurry.Types
 
 sockSourceThread :: TapDesc -> Socket -> (IORef ScurryState) -> IO ()
-sockSourceThread tap sock ssRef = forever $
-    (sockReader sock) >>=
-    (\(addr,msg) -> routeInfo tap ssRef (addr,sockDecode msg))
+sockSourceThread tap sock ssRef = forever $ do
+    (addr,msg) <- sockReader sock
+    putStrLn $ show msg
+    routeInfo tap ssRef (addr,sockDecode msg)
+    return ()
     
 sockReader :: Socket -> IO (SockAddr,BSS.ByteString)
 sockReader sock = do
@@ -34,7 +36,8 @@ routeInfo tap ssRef (srcAddr,msg) = do
          SFrame (_,frame) -> write_tap tap frame
          SJoin            -> atomicModifyIORef ssRef updatePeers
          SKeepAlive       -> putStrLn "Error: SKeepAlive not supported"
-         SNotifyPeer _    -> putStrLn "Error: SNotifyPeer not supported"
+         SNotifyPeer _    -> do putStrLn "Error: SNotifyPeer not supported"
+                                putStrLn $ show srcAddr
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
          SUnknown         -> putStrLn "Error: SUnknown not supported"
     where updatePeers ss@(ScurryState ps m) = if elem srcAddr ps
