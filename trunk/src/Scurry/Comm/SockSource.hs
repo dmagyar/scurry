@@ -33,10 +33,10 @@ routeInfo tap ssRef (srcAddr,msg) = do
     case msg of
          SFrame (_,frame) -> write_tap tap frame
          SJoin            -> atomicModifyIORef ssRef updatePeers
-         SKeepAlive       -> error "SKeepAlive not supported"
-         SNotifyPeer _    -> error "SNotifyPeer not supported"
-         SRequestPeer     -> error "SRequestPeer not supported"
-         SUnknown         -> error "SUnknown not supported"
+         SKeepAlive       -> putStrLn "Error: SKeepAlive not supported"
+         SNotifyPeer _    -> putStrLn "Error: SNotifyPeer not supported"
+         SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
+         SUnknown         -> putStrLn "Error: SUnknown not supported"
     where updatePeers ss@(ScurryState ps m) = if elem srcAddr ps
                                                  then (ss,())
                                                  else (ScurryState (srcAddr : ps) m,())
