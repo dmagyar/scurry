@@ -34,8 +34,7 @@ executable scurry
     if os(darwin)
         build-depends: unix >= 2.3.0.0
         c-sources:          src/C/help-darwin.c
-        c-sources:          src/C/tun_ioctls.h
-
+ 
     hs-source-dirs:     src
     ghc-options:        -Wall -O2 -threaded
     main-is:            scurry.hs

@@ -38,14 +38,16 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     int fd = -1;
     int sock = -1;
 
-    if ((fd = open("/dev/tap0", O_RDWR)) < 0)
+    if ((fd = open("/dev/tap8", O_RDWR)) < 0)
         return -1;
 
     memset(&ifr_tap, 0, sizeof(ifr_tap));
 
-    /* setup tap
-    ifr_tap.ifr_flags = IFF_TAP | IFF_NO_PI;
-    if ((ioctl(fd, TUNSETIFF, (void *)&ifr_tap)) < 0)
+    /* setup tap */
+    strncpy(ifr_tap.ifr_name, "tap8", IFNAMSIZ);
+    
+    /*
+    if ((ioctl(fd, TUNSIFHEAD, (void *)&ifr_tap)) < 0)
         return -2;
     */
     
@@ -53,11 +55,11 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
         return -3;
 
-    if (set_ip(&ifr_tap, sock, local_ip) < 0)
-        return -4;
-
     if (set_mask(&ifr_tap, sock, local_mask) < 0)
         return -5;
+
+    if (set_ip(&ifr_tap, sock, local_ip) < 0)
+        return -4;
 
     if ( ioctl(sock, SIOCGIFFLAGS, &ifr_tap) < 0)
         return -6;
@@ -82,13 +84,10 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
 
 static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4)
 {
-    struct sockaddr_in addr;
+    ifr->ifr_addr.sa_family = AF_INET;
+    ifr->ifr_addr.sa_len = 4;
 
-    /* set the IP of this end point of tunnel */
-    memset( &addr, 0, sizeof(addr) );
-    addr.sin_addr.s_addr = ip4; /*network byte order*/
-    addr.sin_family = AF_INET;
-    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
+    memcpy(ifr->ifr_addr.sa_data, &ip4, 4);
 
     if ( ioctl(sock, SIOCSIFADDR, ifr) < 0) {
         printf("SIOCSIFADDR: %s\n", strerror(errno));
@@ -100,19 +99,16 @@ static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4)
 
 static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4)
 {
-    struct sockaddr_in addr;
-
-    memset( &addr, 0, sizeof(addr) );
-    addr.sin_addr.s_addr = ip4; /*network byte order*/
-    addr.sin_family = AF_INET;
-    memcpy( &ifr->ifr_addr, &addr, sizeof(struct sockaddr) );
+    ifr->ifr_addr.sa_family = AF_INET;
+    ifr->ifr_addr.sa_len = 4;
+    memcpy(ifr->ifr_addr.sa_data, &ip4, 4);
     
-    if ( ioctl(sock, SIOCSIFNETMASK, ifr) < 0) {
+    if ( ioctl(sock, SIOCSIFADDR, ifr) < 0) {
         printf("SIOCSIFNETMASK: %s\n", strerror(errno));
         return -1;
     }
 
-    return 0;
+    return 0; 
 }
 
 static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu)
@@ -142,15 +138,26 @@ int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
     if (getifaddrs(&ifap) == 0) {
         struct ifaddrs *p;
         for (p = ifap; p; p = p->ifa_next) {
-            if (p->ifa_addr->sa_family == AF_LINK) {
+            if (p->ifa_addr->sa_family == AF_LINK && strncmp(((struct sockaddr_dl *) p->ifa_addr)->sdl_data, "tap", 3) == 0) {
             	struct sockaddr_dl *sdp = (struct sockaddr_dl *) p->ifa_addr;
             	memcpy(&(ti->mac), LLADDR(sdp), 6);
             	freeifaddrs(ifap);
-            	return 0;
+                return 0;
             }
         }
         freeifaddrs(ifap);
     }
 
-    return -1;
+    printf("Unable to get MAC address.");
+    return -1;    
+}
+
+int read_tap(int fd, char * buf, int len)
+{
+    return read(fd,buf,len);
+}
+
+int write_tap(int fd, const char * buf, int len)
+{
+    return write(fd,buf,len);
 }
