@@ -38,13 +38,13 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     int fd = -1;
     int sock = -1;
 
-    if ((fd = open("/dev/tap8", O_RDWR)) < 0)
+    if ((fd = open("/dev/tap2", O_RDWR)) < 0)
         return -1;
 
     memset(&ifr_tap, 0, sizeof(ifr_tap));
 
     /* setup tap */
-    strncpy(ifr_tap.ifr_name, "tap8", IFNAMSIZ);
+    strncpy(ifr_tap.ifr_name, "tap2", IFNAMSIZ);
     
     /*
     if ((ioctl(fd, TUNSIFHEAD, (void *)&ifr_tap)) < 0)
@@ -76,7 +76,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     if (set_mtu(&ifr_tap, sock, 1200) < 0)
         return -9;
 
-    ti->fd = fd;
+    ti->desc = fd;
 
 
     return fd;
@@ -152,12 +152,14 @@ int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
     return -1;    
 }
 
-int read_tap(int fd, char * buf, int len)
+int read_tap(union tap_desc * td, char * buf, int len)
 {
-    return read(fd,buf,len);
+    int ret = read(td->desc,buf,len);
+    return ret;
 }
 
-int write_tap(int fd, const char * buf, int len)
+int write_tap(union tap_desc * td, const char * buf, int len)
 {
-    return write(fd,buf,len);
+    int ret = write(td->desc,buf,len);
+    return ret;
 }
