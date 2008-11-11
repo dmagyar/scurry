@@ -27,8 +27,9 @@ instance Binary ScurryMsg where
              case tag of
                   0 -> get >>= (return . SFrame)      -- SFrame
                   1 -> return SJoin                   -- SJoin
-                  2 -> get >>= (return . SNotifyPeer) -- SNotifyPeer
-                  3 -> return SRequestPeer            -- SRequestPeer
+                  2 -> return SKeepAlive              -- SKeepAlive
+                  3 -> get >>= (return . SNotifyPeer) -- SNotifyPeer
+                  4 -> return SRequestPeer            -- SRequestPeer
                   _ -> return SUnknown                -- Unknown Message
     
     put (SFrame fp)     = putWord8 0 >> put fp

@@ -19,13 +19,6 @@ tapSourceThread tap ssRef chan = forever $
     read_tap tap >>=
     (\x -> frameSwitch ssRef chan (tapDecode x))
 
-{-
-tapReader :: Handle -> IO BS.ByteString
-tapReader tap = do
-    hWaitForInput tap (-1)
-    BS.hGetNonBlocking tap readLength
--}
-
 frameSwitch :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> ScurryMsg -> IO ()
 frameSwitch ssRef chan m = do
     (ScurryState peers _) <- readIORef ssRef

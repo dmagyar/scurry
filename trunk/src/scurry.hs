@@ -23,8 +23,6 @@ main = do
         yourSockAddrs = filter (\a -> a /= mySockAddr) $
             map tToS tracker
 
-    putStrLn $ show yourSockAddrs
-
     let frmJst (Just x) = x
         frmJst Nothing = error "If you can't type an IP address right, I'm not even going to try and run."
 
