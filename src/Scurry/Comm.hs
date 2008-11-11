@@ -30,7 +30,7 @@ prepEndPoint ep = do
     bindSocket s ep
     return s
 
-startCom :: Handle -> Socket -> ScurryState -> IO ()
+startCom :: TapDesc -> Socket -> ScurryState -> IO ()
 startCom tap sock initSS = do
     ssRef <- newIORef initSS
     chan  <- atomically $ newTChan

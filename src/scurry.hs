@@ -37,7 +37,7 @@ main = do
     where
         tToS (ScurryPeer ip port) = SockAddrInet port ip 
 
-doWork :: Handle -> SockAddr -> ScurryState -> IO ()
+doWork :: TapDesc -> SockAddr -> ScurryState -> IO ()
 doWork tap mySockAddr state = do
     local <- prepEndPoint mySockAddr
     startCom tap local state
