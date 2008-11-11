@@ -9,7 +9,14 @@ typedef uint32_t ip4_addr_t;
  * descriptor. */
 union tap_desc {
     char pad[16];
+#if defined(MINGW32)
+#elif defined(LINUX)
     int desc;
+#elif defined(DARWIN)
+    int desc;
+#else
+    #error "ERROR: This platform not supported."
+#endif
 };
 
 /* A struct used to pass information about
