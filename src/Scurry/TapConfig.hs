@@ -34,8 +34,6 @@ open_tap :: HostAddress -> HostAddress -> IO (Either CInt (TapDesc,MACAddr))
 open_tap addr mask = do
     td' <- mkTapDesc
 
-    putStrLn $ show td'
-
     let ti = (TapInfo td' $ MACAddr (255,255,255,255,255,255))
 
     ti' <- new ti -- MALLOC \
@@ -49,7 +47,6 @@ open_tap addr mask = do
 
 read_tap :: TapDesc -> IO BSI.ByteString
 read_tap td = do
-    putStrLn "Read Tap"
     let len = 1560
         ptd = unsafeForeignPtrToPtr td
     bs <- BSI.create len (\_ -> return ())
@@ -58,7 +55,6 @@ read_tap td = do
 
 write_tap :: TapDesc -> BSI.ByteString -> IO ()
 write_tap td bs = do
-    putStrLn "Write Tap"
     let ptd = unsafeForeignPtrToPtr td
     _ <- BSU.unsafeUseAsCString bs (\x -> write_tap_ffi ptd x ((fromIntegral . BSS.length) bs))
     return ()
