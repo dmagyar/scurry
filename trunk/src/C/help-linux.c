@@ -71,8 +71,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     if (set_mtu(&ifr_tap, sock, 1200) < 0)
         return -9;
 
-    ti->fd = fd;
-
+    ti->desc->desc = fd;
 
     return fd;
 }
@@ -149,12 +148,12 @@ int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
 }
 
 /* I HATE WINDOWS IT SUCKS SO HARD AHHH!! */
-int read_tap(int fd, char * buf, int len)
+int read_tap(union tap_desc * td, char * buf, int len)
 {
-    return read(fd,buf,len);
+    return read(td->desc,buf,len);
 }
 
-int write_tap(int fd, const char * buf, int len)
+int write_tap(union tap_desc * td, const char * buf, int len)
 {
-    return write(fd,buf,len);
+    return write(td->desc,buf,len);
 }

@@ -5,7 +5,7 @@ module Scurry.Comm.Message(
 
 import Control.Monad (liftM,liftM2)
 import Data.Binary
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString as BSS
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 
 import Scurry.Types
@@ -20,7 +20,7 @@ data ScurryMsg = SFrame FramePair       -- | An ethernet frame.
                | SUnknown               -- | An unknown message
     deriving (Show)
 
-type FramePair = (EthernetHeader,BS.ByteString)
+type FramePair = (EthernetHeader,BSS.ByteString)
 
 instance Binary ScurryMsg where
     get = do tag <- getWord8

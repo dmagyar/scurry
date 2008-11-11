@@ -1,27 +1,24 @@
+{-# OPTIONS -XEmptyDataDecls #-}
 module Scurry.Types(
     ScurryState(..),
     ConsoleCmd(..),
-    TapDesc(..),
+    TapDesc,
+    TapDescX,
     TapInfo(..),
     SrcMAC,
     DstMAC,
     EthType,
     MACAddr(..),
     EthernetHeader(..),
+    mkTapDesc,
 ) where
 
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Data.Binary
 import Numeric
-import Foreign.C.Types
 import Foreign.Storable
-
--- | A TAP device descriptor. Since the C representation isn't uniform across
--- the different platforms we're trying to support, we're going to pull some
--- trickery with C unions. What the TapDesc type is going to do is hold a
--- pointer to the memory defining this struct. The TapDesc is passed to the
--- read/write/close calls to operate on the TAP device.
-newtype TapDesc = TapDesc ()
+import Foreign.ForeignPtr
+import Foreign.Ptr
 
 -- | MAC Address (6 8-bit words)
 data MACAddr = MACAddr (Word8,Word8,Word8,Word8,Word8,Word8)
@@ -45,35 +42,51 @@ instance Binary MACAddr where
 data ScurryState = ScurryState [SockAddr] MACAddr
     deriving (Show)
 
+-- | A TAP device descriptor. Since the C representation isn't uniform across
+-- the different platforms we're trying to support, we're going to pull some
+-- trickery with C unions. What the TapDesc type is going to do is hold a
+-- pointer to the memory defining this struct. The TapDesc is passed to the
+-- read/write/close calls to operate on the TAP device.
+data TapDescX
+type TapDesc = ForeignPtr TapDescX
+
+instance Storable TapDescX where
+    sizeOf    _ = 16
+    alignment _ = 4
+    peek _ = error "NONONO! NO CAN HAZ PEEK!!"
+    poke _ = error "NONONO! NO CAN HAZ POKE!!"
+
+mkTapDesc :: IO TapDesc
+mkTapDesc = mallocForeignPtr
+
 -- | TapInfo type. Holds information about a TAP device which is retreived
 -- from the C bits of the applicatoin.
-data TapInfo = TapInfo CInt MACAddr
+data TapInfo = TapInfo TapDesc MACAddr
     deriving (Show)
 
 -- | Storable instance for TapInfo
 instance Storable TapInfo where
-    sizeOf _    = 12
+    sizeOf _    = 8 + (sizeOf (undefined :: Ptr ()))
     alignment _ = 4
     peek a = do
-        fd <- peekByteOff a 0
-        w1 <- peekByteOff a 4
-        w2 <- peekByteOff a 5
-        w3 <- peekByteOff a 6
-        w4 <- peekByteOff a 7
-        w5 <- peekByteOff a 8
-        w6 <- peekByteOff a 9
-        return $ TapInfo fd (MACAddr (w1,w2,w3,w4,w5,w6))
+        w1 <- peekByteOff a 16
+        w2 <- peekByteOff a 17
+        w3 <- peekByteOff a 18
+        w4 <- peekByteOff a 19
+        w5 <- peekByteOff a 20
+        w6 <- peekByteOff a 21
+        return $ TapInfo undefined (MACAddr (w1,w2,w3,w4,w5,w6))
 
-    poke a (TapInfo fd (MACAddr (w1,w2,w3,w4,w5,w6)))= do
-        pokeByteOff a 0 fd
-        pokeByteOff a 4 w1
-        pokeByteOff a 5 w2
-        pokeByteOff a 6 w3
-        pokeByteOff a 7 w4
-        pokeByteOff a 8 w5
-        pokeByteOff a 9 w6
-        pokeByteOff a 10 (0 :: Word8)
-        pokeByteOff a 11 (0 :: Word8)
+    poke a (TapInfo td (MACAddr (w1,w2,w3,w4,w5,w6))) = do
+        pokeByteOff a 0 (unsafeForeignPtrToPtr td)
+        pokeByteOff a 16 w1
+        pokeByteOff a 17 w2
+        pokeByteOff a 18 w3
+        pokeByteOff a 19 w4
+        pokeByteOff a 20 w5
+        pokeByteOff a 21 w6
+        pokeByteOff a 22 (0 :: Word8)
+        pokeByteOff a 23 (0 :: Word8)
 
 -- | Datatype for Console commands
 data ConsoleCmd = Shutdown
