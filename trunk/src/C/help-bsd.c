@@ -19,9 +19,7 @@
 #include "help.h"
 #include "tun_ioctls.h"
 
-int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
 int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti);
-void close_tap(int tap_fd);
 
 static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip, ip4_addr_t mask);
 static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu);
@@ -113,11 +111,11 @@ static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu)
     return 0;
 }
 
-void close_tap(int tap_fd)
+void close_tap(union tap_desc * td)
 {
-    if (0 <= tap_fd) 
+    if (0 <= td) 
     {
-        close(tap_fd);
+        close(td);
     }
 }
 
