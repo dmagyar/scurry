@@ -60,8 +60,6 @@
 #include "help.h"
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
-void close_tap(int tap_fd);
-
 
 static int is_tap_win32_dev(const char *guid)
 {
@@ -376,12 +374,10 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
         return -6;
     }
     
-    ti->fd = _open_osfhandle ((long) handle, 0);
+    ti->desc->desc = handle;
+    ti->desc->context = ipapi_context;
     
-    if (ti->fd <0)
-      return -10 + ti->fd;
-    
-    return ti->fd;
+    return 0;
 }
 
 
@@ -396,12 +392,12 @@ void close_tap(union tap_desc * td)
  * to be at least as large as the MTU of the device. */
 int read_tap(union tap_desc * td, char * buf, int len)
 {
-  return (int)WriteFile(td->desc, buf, len);
+  return (int)WriteFile(td->desc, buf, len, 0, 0);
 }
 
 /* Write a frame to a tap device. The frame length
  * must be less than the MTU of the device. */
 int write_tap(union tap_desc * td, const char * buf, int len)
 {
-  return (int)ReadFile(td->desc, buf, len);
+  return (int)ReadFile(td->desc, (void *)buf, len, 0, 0);
 }
