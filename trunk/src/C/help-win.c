@@ -289,7 +289,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     // #TODO this function needs some pretty heavy cleanup
     const char *prefered_name = NULL;
       
-    int err;
+    DWORD err;
     char device_path[256];
     char device_guid[0x100];
     int rc;
@@ -360,8 +360,22 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
                              &ipapi_context,
                              &ipapi_instance)) != NO_ERROR)
     {
-      printf("-5 Reason: %d\n", err);
-      return -5;
+      printf("AddIPAddress failed! (%d)\n", err);
+
+      LPVOID lpMsgBuf;
+
+      if (5010 != err) {
+        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                          FORMAT_MESSAGE_FROM_SYSTEM |
+                          FORMAT_MESSAGE_IGNORE_INSERTS,
+                          NULL, err,
+                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                          (LPTSTR) & lpMsgBuf, 0, NULL)) {
+              printf("\tError: %s", lpMsgBuf);
+              LocalFree(lpMsgBuf);
+        }
+        return -5;
+      }
     }
     // if (AddIPAddress (local_ip,
                       // local_mask,
@@ -373,6 +387,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     if (!tap_win32_set_status(handle, TRUE)) {
         return -6;
     }
+
     
     ti->desc->desc = handle;
     ti->desc->context = ipapi_context;
@@ -392,12 +407,14 @@ void close_tap(union tap_desc * td)
  * to be at least as large as the MTU of the device. */
 int read_tap(union tap_desc * td, char * buf, int len)
 {
-  return (int)WriteFile(td->desc, buf, len, 0, 0);
+  printf("read_tap %d\n", len);
+  return (int)ReadFile(td->desc, (void *)buf, len, 0, 0);
 }
 
 /* Write a frame to a tap device. The frame length
  * must be less than the MTU of the device. */
 int write_tap(union tap_desc * td, const char * buf, int len)
 {
-  return (int)ReadFile(td->desc, (void *)buf, len, 0, 0);
+  printf("write_tap %d\n", len);
+  return (int)WriteFile(td->desc, buf, len, 0, 0);
 }
