@@ -12,7 +12,7 @@ union tap_desc {
 #if defined(MINGW32)
 #elif defined(LINUX)
     int desc;
-#elif defined(DARWIN)
+#elif defined(BSD)
     int desc;
 #else
     #error "ERROR: This platform not supported."
