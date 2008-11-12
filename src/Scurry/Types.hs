@@ -51,7 +51,7 @@ data TapDescX
 type TapDesc = ForeignPtr TapDescX
 
 instance Storable TapDescX where
-    sizeOf    _ = 16
+    sizeOf    _ = 32
     alignment _ = 4
     peek _ = error "NONONO! NO CAN HAZ PEEK!!"
     poke _ = error "NONONO! NO CAN HAZ POKE!!"
