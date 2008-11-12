@@ -1,8 +1,11 @@
 #ifndef __HELP_HASKELL_VPN__
 #define __HELP_HASKELL_VPN__ __HELP_HASKELL_VPN__
 
+#include <assert.h>
+
 typedef uint32_t ip4_addr_t;
 
+assert(sizeof(union tap_desc) <= 16);
 /* A union that serves to be a common storage medium for
  * whatever the OS wants to use as a device descriptor
  * for the TAP device. In Linux, this is just a file 
@@ -10,6 +13,11 @@ typedef uint32_t ip4_addr_t;
 union tap_desc {
     char pad[16];
 #if defined(MINGW32)
+    struct 
+    {
+      HANDLE desc;
+      unsigned long context;
+    };
 #elif defined(LINUX)
     int desc;
 #elif defined(BSD)
