@@ -43,6 +43,7 @@
 #define USERMODEDEVICEDIR "\\\\.\\Global\\"
 #define TAPSUFFIX         ".tap"
 
+#define TAP_COMPONENT_ID "tap0801"
 
 //======================
 // Compile time configuration
@@ -140,7 +141,7 @@ static int is_tap_win32_dev(const char *guid)
                     &len);
 
                 if (status == ERROR_SUCCESS && data_type == REG_SZ) {
-                    if (!strcmp (component_id, "tap0801") &&
+                    if (!strcmp (component_id, TAP_COMPONENT_ID) &&
                         !strcmp (net_cfg_instance_id, guid)) {
                         RegCloseKey (unit_key);
                         RegCloseKey (netcard_key);
@@ -319,6 +320,14 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
               USERMODEDEVICEDIR,
               device_guid,
               TAPSUFFIX);
+    printf("%s\n", device_guid);
+    printf("%s\n", device_path);
+    printf("%i\n", ERROR_DEV_NOT_EXIST);
+    printf("%i\n", ERROR_DUP_DOMAINNAME);
+    printf("%i\n", ERROR_GEN_FAILURE);
+    printf("%i\n", ERROR_INVALID_HANDLE);
+    printf("%i\n", ERROR_INVALID_PARAMETER);
+    printf("%i\n", ERROR_NOT_SUPPORTED);
 
     handle = CreateFile (
         device_path,
@@ -326,7 +335,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
         0,
         0,
         OPEN_EXISTING,
-        FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
+        FILE_ATTRIBUTE_SYSTEM,
         0 );
 
     if (handle == INVALID_HANDLE_VALUE) {
@@ -346,15 +355,22 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
       return -4;
     }
     
+    // printf("%x\n", local_ip);
     if ((err = AddIPAddress (local_ip,
-                      local_mask,
-                      index,
-                      &ipapi_context,
-                      &ipapi_instance)) != NO_ERROR)
+                             local_mask,
+                             index,
+                             &ipapi_context,
+                             &ipapi_instance)) != NO_ERROR)
     {
       printf("-5 Reason: %d\n", err);
       return -5;
     }
+    // if (AddIPAddress (local_ip,
+                      // local_mask,
+                      // index,
+                      // &ipapi_context,
+                      // &ipapi_instance) != NO_ERROR)
+      // return -5;
     
     if (!tap_win32_set_status(handle, TRUE)) {
         return -6;
@@ -363,14 +379,29 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     ti->fd = _open_osfhandle ((long) handle, 0);
     
     if (ti->fd <0)
-      return -10 + ti->fd;    
+      return -10 + ti->fd;
     
     return ti->fd;
 }
 
 
-void close_tap(int tap_fd)
+void close_tap(union tap_desc * td)
 {
-   // #TODO we should have something here to delete the address that we added to the adapter
+  DeleteIPAddress(td->context);
+  CloseHandle(td->desc);
 }
 
+
+/* Read a frame from a tap device. The buffer needs
+ * to be at least as large as the MTU of the device. */
+int read_tap(union tap_desc * td, char * buf, int len)
+{
+  return (int)WriteFile(td->desc, buf, len);
+}
+
+/* Write a frame to a tap device. The frame length
+ * must be less than the MTU of the device. */
+int write_tap(union tap_desc * td, const char * buf, int len)
+{
+  return (int)ReadFile(td->desc, buf, len);
+}
