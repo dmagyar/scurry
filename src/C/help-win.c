@@ -407,14 +407,18 @@ void close_tap(union tap_desc * td)
  * to be at least as large as the MTU of the device. */
 int read_tap(union tap_desc * td, char * buf, int len)
 {
-  printf("read_tap %d\n", len);
-  return (int)ReadFile(td->desc, (void *)buf, len, 0, 0);
+  int ret;
+  DWORD bytes_read;
+  ret = (int)ReadFile(td->desc, (LPVOID)buf, (DWORD)len, &bytes_read, 0);
+  return bytes_read;
 }
 
 /* Write a frame to a tap device. The frame length
  * must be less than the MTU of the device. */
 int write_tap(union tap_desc * td, const char * buf, int len)
 {
-  printf("write_tap %d\n", len);
-  return (int)WriteFile(td->desc, buf, len, 0, 0);
+  int ret;
+  printf("write_tap %d from 0x%X\n", len, buf);
+  ret = (int)WriteFile(td->desc, buf, len, 0, 0);
+  return ret;
 }
