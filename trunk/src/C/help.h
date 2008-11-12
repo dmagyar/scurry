@@ -5,7 +5,7 @@
 
 typedef uint32_t ip4_addr_t;
 
-assert(sizeof(union tap_desc) <= 16);
+//assert(sizeof(union tap_desc) <= 16);
 /* A union that serves to be a common storage medium for
  * whatever the OS wants to use as a device descriptor
  * for the TAP device. In Linux, this is just a file 
@@ -42,7 +42,7 @@ int open_tap(ip4_addr_t local_ip,
              struct tap_info * ti);
 
 /* Close a tap device. */
-void close_tun(union tap_desc * td);
+void close_tap(union tap_desc * td);
 
 /* Read a frame from a tap device. The buffer needs
  * to be at least as large as the MTU of the device. */
