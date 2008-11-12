@@ -418,7 +418,7 @@ int read_tap(union tap_desc * td, char * buf, int len)
 int write_tap(union tap_desc * td, const char * buf, int len)
 {
   int ret;
-  printf("write_tap %d from 0x%X\n", len, buf);
-  ret = (int)WriteFile(td->desc, buf, len, 0, 0);
-  return ret;
+  DWORD bytes_wrote;
+  ret = (int)WriteFile(td->desc, buf, len, &bytes_wrote, 0);
+  return bytes_wrote;
 }
