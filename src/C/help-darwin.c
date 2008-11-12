@@ -8,7 +8,6 @@
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/route.h>
-#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <stdarg.h>
 #include <stdio.h>
