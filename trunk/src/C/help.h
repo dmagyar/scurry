@@ -11,7 +11,7 @@ typedef uint32_t ip4_addr_t;
  * for the TAP device. In Linux, this is just a file 
  * descriptor. */
 union tap_desc {
-    char pad[16];
+    char pad[32];
 #if defined(MINGW32)
     struct 
     {
