@@ -13,7 +13,7 @@ import Scurry.Management.Tracker
 import Scurry.Types
 
 main :: IO ()
-main = do 
+main = withSocketsDo $ do 
     (configPath:trackerPath:_) <- getArgs
 
     (Just config)  <- load_scurry_config_file configPath

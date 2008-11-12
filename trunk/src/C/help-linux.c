@@ -20,7 +20,7 @@
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
 int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti);
-void close_tap(int tap_fd);
+void close_tap(union tap_desc * td);
 
 static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip4);
 static int set_mask(struct ifreq * ifr, int sock, ip4_addr_t ip4);
@@ -123,11 +123,11 @@ static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu)
     return 0;
 }
 
-void close_tap(int tap_fd)
+void close_tap(union tap_desc * td)
 {
-    if (0 <= tap_fd) 
+    if (0 <= td->desc) 
     {
-        close(tap_fd);
+        close(td->desc);
     }
 }
 
