@@ -5,15 +5,16 @@
 
 typedef uint32_t ip4_addr_t;
 
-//assert(sizeof(union tap_desc) <= 16);
+#define TAP_DESC_SIZE 32
+
 /* A union that serves to be a common storage medium for
  * whatever the OS wants to use as a device descriptor
  * for the TAP device. In Linux, this is just a file 
  * descriptor. */
 union tap_desc {
-    char pad[32];
+    char pad[TAP_DESC_SIZE];
 #if defined(MINGW32)
-    struct 
+    struct
     {
       HANDLE desc;
       unsigned long context;
