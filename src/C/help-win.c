@@ -318,14 +318,14 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
               USERMODEDEVICEDIR,
               device_guid,
               TAPSUFFIX);
-    printf("%s\n", device_guid);
-    printf("%s\n", device_path);
-    printf("%i\n", ERROR_DEV_NOT_EXIST);
-    printf("%i\n", ERROR_DUP_DOMAINNAME);
-    printf("%i\n", ERROR_GEN_FAILURE);
-    printf("%i\n", ERROR_INVALID_HANDLE);
-    printf("%i\n", ERROR_INVALID_PARAMETER);
-    printf("%i\n", ERROR_NOT_SUPPORTED);
+    // printf("%s\n", device_guid);
+    // printf("%s\n", device_path);
+    // printf("%i\n", ERROR_DEV_NOT_EXIST);
+    // printf("%i\n", ERROR_DUP_DOMAINNAME);
+    // printf("%i\n", ERROR_GEN_FAILURE);
+    // printf("%i\n", ERROR_INVALID_HANDLE);
+    // printf("%i\n", ERROR_INVALID_PARAMETER);
+    // printf("%i\n", ERROR_NOT_SUPPORTED);
 
     handle = CreateFile (
         device_path,

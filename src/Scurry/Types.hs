@@ -69,24 +69,24 @@ instance Storable TapInfo where
     sizeOf _    = 8 + (sizeOf (undefined :: Ptr ()))
     alignment _ = 4
     peek a = do
-        w1 <- peekByteOff a 16
-        w2 <- peekByteOff a 17
-        w3 <- peekByteOff a 18
-        w4 <- peekByteOff a 19
-        w5 <- peekByteOff a 20
-        w6 <- peekByteOff a 21
+        w1 <- peekByteOff a 4
+        w2 <- peekByteOff a 5
+        w3 <- peekByteOff a 6
+        w4 <- peekByteOff a 7
+        w5 <- peekByteOff a 8
+        w6 <- peekByteOff a 9
         return $ TapInfo undefined (MACAddr (w1,w2,w3,w4,w5,w6))
 
     poke a (TapInfo td (MACAddr (w1,w2,w3,w4,w5,w6))) = do
         pokeByteOff a 0 (unsafeForeignPtrToPtr td)
-        pokeByteOff a 16 w1
-        pokeByteOff a 17 w2
-        pokeByteOff a 18 w3
-        pokeByteOff a 19 w4
-        pokeByteOff a 20 w5
-        pokeByteOff a 21 w6
-        pokeByteOff a 22 (0 :: Word8)
-        pokeByteOff a 23 (0 :: Word8)
+        pokeByteOff a 4 w1
+        pokeByteOff a 5 w2
+        pokeByteOff a 6 w3
+        pokeByteOff a 7 w4
+        pokeByteOff a 8 w5
+        pokeByteOff a 9 w6
+        -- pokeByteOff a 22 (0 :: Word8)
+        -- pokeByteOff a 23 (0 :: Word8)
 
 -- | Datatype for Console commands
 data ConsoleCmd = Shutdown
