@@ -37,6 +37,8 @@ routeInfo tap ssRef (srcAddr,msg) = do
          SKeepAlive       -> return ()
          SNotifyPeer _    -> putStrLn "Error: SNotifyPeer not supported"
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
+         SPing pid        -> putStrLn "Error: SPing not supported"
+         SEcho eid        -> putStrLn "Error: SEcho not supported"
          SUnknown         -> putStrLn "Error: SUnknown not supported"
     where updatePeers ss@(ScurryState ps m) = if elem srcAddr ps
                                                  then (ss,())
