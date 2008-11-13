@@ -10,7 +10,7 @@ import Data.List
 import System.IO
 import System.Exit
 import Network.Socket hiding (inet_addr,inet_ntoa)
-import GHC.Conc
+import qualified GHC.Conc as GC
 
 import Scurry.Console.Parser
 import Scurry.Comm.Message
@@ -23,7 +23,7 @@ consoleThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 consoleThread ssRef chan = do
     (ScurryState peers mac) <- readIORef ssRef
 
-    mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,SJoin)) peers
+    mapM_ (\x -> GC.atomically $ writeTChan chan (DestSingle x,SJoin)) peers
 
     forever $ do
         ln <- getLine
