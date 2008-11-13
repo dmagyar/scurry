@@ -7,8 +7,11 @@ import Control.Monad (liftM,liftM2)
 import Data.Binary
 import qualified Data.ByteString as BSS
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
+import Data.Word
 
 import Scurry.Types
+
+type PingID = Word32
 
 -- |These are the messages we get across the network.
 -- They are the management and data protocol.
@@ -17,6 +20,8 @@ data ScurryMsg = SFrame FramePair       -- | An ethernet frame.
                | SKeepAlive             -- | A keep alive message. 
                | SNotifyPeer SockAddr   -- | A message to notify others of a peer.
                | SRequestPeer           -- | A message to request peer listings on the network.
+               | SPing PingID
+               | SEcho PingID
                | SUnknown               -- | An unknown message
     deriving (Show)
 
@@ -30,6 +35,8 @@ instance Binary ScurryMsg where
                   2 -> return SKeepAlive              -- SKeepAlive
                   3 -> get >>= (return . SNotifyPeer) -- SNotifyPeer
                   4 -> return SRequestPeer            -- SRequestPeer
+                  5 -> get >>= (return . SPing)
+                  6 -> get >>= (return . SEcho)
                   _ -> return SUnknown                -- Unknown Message
     
     put (SFrame fp)     = putWord8 0 >> put fp
@@ -37,6 +44,8 @@ instance Binary ScurryMsg where
     put SKeepAlive      = putWord8 2
     put (SNotifyPeer p) = putWord8 3 >> put p
     put SRequestPeer    = putWord8 4
+    put (SPing pp)      = putWord8 5 >> put pp
+    put (SEcho pe)      = putWord8 6 >> put pe
     put SUnknown        = putWord8 255
 
 instance Binary PortNumber where

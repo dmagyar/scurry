@@ -10,6 +10,7 @@ import Data.List
 import System.IO
 import System.Exit
 import Network.Socket hiding (inet_addr,inet_ntoa)
+import GHC.Conc
 
 import Scurry.Console.Parser
 import Scurry.Comm.Message
@@ -19,12 +20,17 @@ import Scurry.Types
 -- Console command interpreter
 
 consoleThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
-consoleThread ssRef chan = forever $ do
-    ln <- getLine
+consoleThread ssRef chan = do
+    (ScurryState peers mac) <- readIORef ssRef
 
-    case (parseConsole ln) of
-         (Left err) -> badCmd err
-         (Right ln') -> goodCmd ln'
+    mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,SJoin)) peers
+
+    forever $ do
+        ln <- getLine
+
+        case (parseConsole ln) of
+             (Left err) -> badCmd err
+             (Right ln') -> goodCmd ln'
 
     where goodCmd cmd = case cmd of
                             Shutdown           -> exitWith ExitSuccess
