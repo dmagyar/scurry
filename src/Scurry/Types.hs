@@ -64,29 +64,32 @@ mkTapDesc = mallocForeignPtr
 data TapInfo = TapInfo TapDesc MACAddr
     deriving (Show)
 
+ptrSize :: Int
+ptrSize = sizeOf (undefined :: Ptr ())
+
 -- | Storable instance for TapInfo
 instance Storable TapInfo where
-    sizeOf _    = 8 + (sizeOf (undefined :: Ptr ()))
+    sizeOf _    = 8 + ptrSize
     alignment _ = 4
     peek a = do
-        w1 <- peekByteOff a 4
-        w2 <- peekByteOff a 5
-        w3 <- peekByteOff a 6
-        w4 <- peekByteOff a 7
-        w5 <- peekByteOff a 8
-        w6 <- peekByteOff a 9
+        w1 <- peekByteOff a (ptrSize + 0)
+        w2 <- peekByteOff a (ptrSize + 1)
+        w3 <- peekByteOff a (ptrSize + 2)
+        w4 <- peekByteOff a (ptrSize + 3)
+        w5 <- peekByteOff a (ptrSize + 4)
+        w6 <- peekByteOff a (ptrSize + 5)
         return $ TapInfo undefined (MACAddr (w1,w2,w3,w4,w5,w6))
 
     poke a (TapInfo td (MACAddr (w1,w2,w3,w4,w5,w6))) = do
         pokeByteOff a 0 (unsafeForeignPtrToPtr td)
-        pokeByteOff a 4 w1
-        pokeByteOff a 5 w2
-        pokeByteOff a 6 w3
-        pokeByteOff a 7 w4
-        pokeByteOff a 8 w5
-        pokeByteOff a 9 w6
-        -- pokeByteOff a 22 (0 :: Word8)
-        -- pokeByteOff a 23 (0 :: Word8)
+        pokeByteOff a (ptrSize + 0) w1
+        pokeByteOff a (ptrSize + 1) w2
+        pokeByteOff a (ptrSize + 2) w3
+        pokeByteOff a (ptrSize + 3) w4
+        pokeByteOff a (ptrSize + 4) w5
+        pokeByteOff a (ptrSize + 5) w6
+        pokeByteOff a (ptrSize + 6) (0 :: Word8)
+        pokeByteOff a (ptrSize + 7) (0 :: Word8)
 
 -- | Datatype for Console commands
 data ConsoleCmd = Shutdown
