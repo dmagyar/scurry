@@ -26,7 +26,7 @@ sockSourceThread tap sock ssRef = forever $ do
     
 sockReader :: Socket -> IO (SockAddr,BSS.ByteString)
 sockReader sock = do
-    p@(msg,addr) <- recvFrom sock readLength
+    (msg,addr) <- recvFrom sock readLength
     return (addr,msg)
 
 routeInfo :: TapDesc -> (IORef ScurryState) -> (SockAddr,ScurryMsg) -> IO ()

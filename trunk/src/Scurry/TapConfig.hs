@@ -47,7 +47,6 @@ open_tap addr mask = do
 
 read_tap :: TapDesc -> IO BSI.ByteString
 read_tap td = do
-    putStrLn "read_tap"
     let len = 1560
         ptd = unsafeForeignPtrToPtr td
     bs <- BSI.create len (\_ -> return ())
@@ -56,7 +55,6 @@ read_tap td = do
 
 write_tap :: TapDesc -> BSI.ByteString -> IO ()
 write_tap td bs = do
-    putStrLn "write_tap"
     let ptd = unsafeForeignPtrToPtr td
     _ <- BSU.unsafeUseAsCString bs (\x -> write_tap_ffi ptd x ((fromIntegral . BSS.length) bs))
     return ()
