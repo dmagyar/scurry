@@ -24,8 +24,6 @@ sockWriter sock chan = do
     
     let sendToAddr = sendTo sock (BSS.concat . BS.toChunks $ encode msg)
 
-    putStrLn $ "\t\tSENDING: " ++ (show msg)
-
     case dst of
          DestSingle addr -> sendToAddr addr >> return ()
          DestList addrs -> mapM_ sendToAddr addrs

@@ -32,8 +32,6 @@ sockReader sock = do
 routeInfo :: TapDesc -> (IORef ScurryState) -> (SockAddr,ScurryMsg) -> IO ()
 routeInfo tap ssRef (srcAddr,msg) = do
     
-    putStrLn $ "\t\tREADING: " ++ (show (srcAddr,msg))
-
     case msg of
          SFrame (_,frame) -> write_tap tap frame
          SJoin            -> atomicModifyIORef ssRef updatePeers
