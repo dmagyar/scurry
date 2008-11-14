@@ -60,6 +60,9 @@
 
 #include "help.h"
 
+static OVERLAPPED overlap_read, overlap_write;
+
+
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
 
 static const IP_ADAPTER_INFO *
@@ -380,7 +383,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
         0,
         0,
         OPEN_EXISTING,
-        FILE_ATTRIBUTE_SYSTEM,
+        FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
         0 );
 
     if (handle == INVALID_HANDLE_VALUE) {
@@ -415,6 +418,12 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     }
     
     FlushIpNetTable(index);
+    
+    overlap_read.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	  overlap_write.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	  if (!overlap_read.hEvent || !overlap_write.hEvent) {
+  		return -7;
+  	}
     
     // delete_temp_addresses (index);
     
@@ -470,20 +479,51 @@ void close_tap(union tap_desc * td)
  * to be at least as large as the MTU of the device. */
 int read_tap(union tap_desc * td, char * buf, int len)
 {
-  int ret;
-  DWORD bytes_read;
-  ret = (int)ReadFile(td->desc, (LPVOID)buf, (DWORD)len, &bytes_read, 0);
-  return bytes_read;
+	DWORD read_size;
+	
+	ResetEvent(overlap_read.hEvent);
+	if (ReadFile(td->desc, buf, len, &read_size, &overlap_read)) {
+		return read_size;
+	}
+	switch (GetLastError()) {
+	case ERROR_IO_PENDING:
+		WaitForSingleObject(overlap_read.hEvent, INFINITE);
+		GetOverlappedResult(td->desc, &overlap_read, &read_size, FALSE);
+		return read_size;
+		break;
+	default:
+		break;
+	}
+	
+	return -1;
 }
 
 /* Write a frame to a tap device. The frame length
  * must be less than the MTU of the device. */
 int write_tap(union tap_desc * td, const char * buf, int len)
-{
-  int ret;
-  DWORD bytes_wrote;
-  ret = (int)WriteFile(td->desc, buf, len, &bytes_wrote, 0);
-  return bytes_wrote;
+{  
+  DWORD write_size;
+	
+	ResetEvent(overlap_write.hEvent);
+	if (WriteFile(td->desc,
+		buf,
+		len,
+		&write_size,
+		&overlap_write)) {
+		return write_size;
+	}
+	switch (GetLastError()) {
+	case ERROR_IO_PENDING:
+		WaitForSingleObject(overlap_write.hEvent, INFINITE);
+		GetOverlappedResult(td->desc, &overlap_write,
+			&write_size, FALSE);
+		return write_size;
+		break;
+	default:
+		break;
+	}
+	
+	return -1;
 }
 
 
