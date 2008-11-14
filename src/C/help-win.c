@@ -10,6 +10,7 @@
 #include <iphlpapi.h>
 #include <io.h>
 #include <Fcntl.h>
+#include <malloc.h>
 
 //=============
 // TAP IOCTLs
@@ -60,6 +61,60 @@
 #include "help.h"
 
 int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti);
+
+static const IP_ADAPTER_INFO *
+get_adapter (const IP_ADAPTER_INFO *ai, DWORD index)
+{
+  if (ai && index != (DWORD)~0)
+    {
+      const IP_ADAPTER_INFO *a;
+
+      /* find index in the linked list */
+      for (a = ai; a != NULL; a = a->Next)
+	{
+	  if (a->Index == index)
+	    return a;
+	}
+    }
+  return NULL;
+}
+
+
+static void
+delete_temp_addresses (DWORD index)
+{
+  ULONG size = 4096;
+  DWORD status;
+  IP_ADAPTER_INFO *adapters = (IP_ADAPTER_INFO *) malloc(size);
+  if ((status = GetAdaptersInfo (adapters, &size)) != NO_ERROR)
+	 return;
+   
+  const IP_ADAPTER_INFO *a = get_adapter(adapters, index);
+
+  if (a)
+  {
+    const IP_ADDR_STRING *ip = &a->IpAddressList;
+    while (ip)
+    {
+      
+      const DWORD context = ip->Context;
+
+      if ((status = DeleteIPAddress ((ULONG) context)) == NO_ERROR)
+      {
+        //msg (M_INFO, "Successfully deleted previously set dynamic IP/netmask: %s/%s",  ip->IpAddress.String,    ip->IpMask.String);
+      }
+      else
+      {
+        const char *empty = "0.0.0.0";
+        if (strcmp (ip->IpAddress.String, empty)
+         || strcmp (ip->IpMask.String, empty)) {}
+          //msg (M_INFO, "NOTE: could not delete previously set dynamic IP/netmask: %s/%s (status=%u)", ip->IpAddress.String, ip->IpMask.String,         (unsigned int)status);
+      }
+      ip = ip->Next;
+    }
+  }
+  free(adapters);
+}
 
 static int is_tap_win32_dev(const char *guid)
 {
@@ -304,7 +359,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
         unsigned long minor;
         unsigned long debug;
     } version;
-    long len;
+    DWORD len;
 
     if (prefered_name != NULL)
         snprintf(name_buffer, sizeof(name_buffer), "%s", prefered_name);
@@ -318,14 +373,6 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
               USERMODEDEVICEDIR,
               device_guid,
               TAPSUFFIX);
-    // printf("%s\n", device_guid);
-    // printf("%s\n", device_path);
-    // printf("%i\n", ERROR_DEV_NOT_EXIST);
-    // printf("%i\n", ERROR_DUP_DOMAINNAME);
-    // printf("%i\n", ERROR_GEN_FAILURE);
-    // printf("%i\n", ERROR_INVALID_HANDLE);
-    // printf("%i\n", ERROR_INVALID_PARAMETER);
-    // printf("%i\n", ERROR_NOT_SUPPORTED);
 
     handle = CreateFile (
         device_path,
@@ -353,40 +400,56 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
       return -4;
     }
     
-    // printf("%x\n", local_ip);
-    if ((err = AddIPAddress (local_ip,
-                             local_mask,
-                             index,
-                             &ipapi_context,
-                             &ipapi_instance)) != NO_ERROR)
-    {
-      printf("AddIPAddress failed! (%d)\n", err);
-
-      LPVOID lpMsgBuf;
-
-      if (5010 != err) {
-        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                          FORMAT_MESSAGE_FROM_SYSTEM |
-                          FORMAT_MESSAGE_IGNORE_INSERTS,
-                          NULL, err,
-                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                          (LPTSTR) & lpMsgBuf, 0, NULL)) {
-              printf("\tError: %s", lpMsgBuf);
-              LocalFree(lpMsgBuf);
-        }
-        return -5;
-      }
-    }
-    // if (AddIPAddress (local_ip,
-                      // local_mask,
-                      // index,
-                      // &ipapi_context,
-                      // &ipapi_instance) != NO_ERROR)
-      // return -5;
+    uint32_t ep[4];
+    ep[0] = local_ip;
+    ep[1] = local_mask;
+    ep[2] = 0;
+    ep[3] = 86400;
+    if (!DeviceIoControl (handle, TAP_IOCTL_CONFIG_DHCP_MASQ,
+			    ep, sizeof (ep),
+			    ep, sizeof (ep), &len, NULL))
+      return -5;
     
     if (!tap_win32_set_status(handle, TRUE)) {
-        return -6;
+      return -6;
     }
+    
+    FlushIpNetTable(index);
+    
+    delete_temp_addresses (index);
+    
+    // printf("%x\n", local_ip);
+    // if ((err = AddIPAddress (local_ip,
+                             // local_mask,
+                             // index,
+                             // &ipapi_context,
+                             // &ipapi_instance)) != NO_ERROR)
+    // {
+      // printf("AddIPAddress failed! (%d)\n", err);
+
+      // LPVOID lpMsgBuf;
+
+      // if (5010 != err) {
+        // if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                          // FORMAT_MESSAGE_FROM_SYSTEM |
+                          // FORMAT_MESSAGE_IGNORE_INSERTS,
+                          // NULL, err,
+                          // MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                          // (LPTSTR) & lpMsgBuf, 0, NULL)) {
+              // printf("\tError: %s", lpMsgBuf);
+              // LocalFree(lpMsgBuf);
+        // }
+        // return -5;
+      // }
+    // }
+    if (AddIPAddress (local_ip,
+                      local_mask,
+                      index,
+                      &ipapi_context,
+                      &ipapi_instance) != NO_ERROR)
+      return -7;
+    
+
 
     
     ti->desc->desc = handle;
@@ -422,3 +485,5 @@ int write_tap(union tap_desc * td, const char * buf, int len)
   ret = (int)WriteFile(td->desc, buf, len, &bytes_wrote, 0);
   return bytes_wrote;
 }
+
+
