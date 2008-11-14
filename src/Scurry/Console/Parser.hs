@@ -21,26 +21,26 @@ consoleCmd = (try cmdShutdown) <|>
 cmdShutdown :: Parser ConsoleCmd
 cmdShutdown = do
     string "shutdown"
-    return Shutdown
+    return CmdShutdown
 
 cmdListPeers :: Parser ConsoleCmd
 cmdListPeers = do
     string "peers"
-    return ListPeers
+    return CmdListPeers
 
 cmdNewPeer :: Parser ConsoleCmd
 cmdNewPeer = do
     string "new"
     spaces
     (ip,port) <- ip_port_pair
-    return $ NewPeer ip port
+    return $ CmdNewPeer ip port
 
 cmdRemovePeer :: Parser ConsoleCmd
 cmdRemovePeer = do
     string "remove"
     spaces
     (ip,port) <- ip_port_pair
-    return $ RemovePeer ip port
+    return $ CmdRemovePeer ip port
 
 {- Mostly helper parsers that don't exist in the Parsec libary -}    
 ip_port_pair :: Parser (HostAddress,PortNumber)

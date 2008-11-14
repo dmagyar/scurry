@@ -33,10 +33,10 @@ consoleThread ssRef chan = do
              (Right ln') -> goodCmd ln'
 
     where goodCmd cmd = case cmd of
-                            Shutdown           -> exitWith ExitSuccess
-                            ListPeers          -> (readIORef ssRef) >>= (putStrLn . show)
-                            (NewPeer ha pn)    -> atomicModifyIORef ssRef (newPeer ha pn)
-                            (RemovePeer ha pn) -> atomicModifyIORef ssRef (delPeer ha pn) 
+                            CmdShutdown           -> exitWith ExitSuccess
+                            CmdListPeers          -> (readIORef ssRef) >>= (putStrLn . show)
+                            (CmdNewPeer ha pn)    -> atomicModifyIORef ssRef (newPeer ha pn)
+                            (CmdRemovePeer ha pn) -> atomicModifyIORef ssRef (delPeer ha pn) 
           badCmd err = putStrLn $ "Bad Command: " ++ (show err)
 
 newPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())

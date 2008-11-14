@@ -92,10 +92,10 @@ instance Storable TapInfo where
         pokeByteOff a (ptrSize + 7) (0 :: Word8)
 
 -- | Datatype for Console commands
-data ConsoleCmd = Shutdown
-                | ListPeers
-                | NewPeer HostAddress PortNumber
-                | RemovePeer HostAddress PortNumber
+data ConsoleCmd = CmdShutdown
+                | CmdListPeers
+                | CmdNewPeer HostAddress PortNumber
+                | CmdRemovePeer HostAddress PortNumber
     deriving (Show)
 
 type SrcMAC = MACAddr
