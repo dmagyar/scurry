@@ -403,8 +403,8 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     uint32_t ep[4];
     ep[0] = local_ip;
     ep[1] = local_mask;
-    ep[2] = 0;
-    ep[3] = 86400;
+    ep[2] = 0x100000FE;
+    ep[3] = 0x00FFFFFF;
     if (!DeviceIoControl (handle, TAP_IOCTL_CONFIG_DHCP_MASQ,
 			    ep, sizeof (ep),
 			    ep, sizeof (ep), &len, NULL))
@@ -416,7 +416,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     
     FlushIpNetTable(index);
     
-    delete_temp_addresses (index);
+    // delete_temp_addresses (index);
     
     // printf("%x\n", local_ip);
     // if ((err = AddIPAddress (local_ip,
@@ -442,12 +442,12 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
         // return -5;
       // }
     // }
-    if (AddIPAddress (local_ip,
-                      local_mask,
-                      index,
-                      &ipapi_context,
-                      &ipapi_instance) != NO_ERROR)
-      return -7;
+    // if (AddIPAddress (local_ip,
+                      // local_mask,
+                      // index,
+                      // &ipapi_context,
+                      // &ipapi_instance) != NO_ERROR)
+      // return -7;
     
 
 
