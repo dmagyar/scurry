@@ -17,5 +17,11 @@ msToS = (* 1000000)
 keepAliveThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 keepAliveThread ssRef chan = forever $ do
     (ScurryState peers _) <- readIORef ssRef
-    atomically $ writeTChan chan (DestList (map (\(_,s) -> s) peers),SKeepAlive)
+    mapM messenger peers
     threadDelay (msToS 10)
+    where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
+          messenger (mac,addr) = do
+            case mac of
+                 Nothing  -> do (ScurryState _ mymac) <- readIORef ssRef
+                                sendMsg (DestSingle addr) (SJoin mymac)
+                 (Just _) -> sendMsg (DestSingle addr) (SKeepAlive)
