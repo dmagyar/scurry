@@ -31,7 +31,8 @@ This is a short description which will help you get Scurry running on various pl
   * For Windows Vista
     * In an administrator command prompt run: dist\build\scurry\scurry.exe files\config.json files\tracker.json
   * For Windows XP
-    * (fill me in)
+    * In a command prompt in the same directory that you built scurry run:
+    dist\build\scurry\scurry.exe files\config.json files\tracker.json
     
 
 = OS/X =
