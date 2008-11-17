@@ -29,7 +29,7 @@ This is a short description which will help you get Scurry running on various pl
     * This installs a new virtual Ethernet adapter 
   * Build scurry as described in the Linux heading above.
   * For Windows Vista
-    * In an administrator command prompt run: >dist\build\scurry\scurry.exe files\config.json files\tracker.json
+    * In an administrator command prompt run: dist\build\scurry\scurry.exe files\config.json files\tracker.json
   * For Windows XP
     * (fill me in)
     
