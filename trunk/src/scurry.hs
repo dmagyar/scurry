@@ -20,8 +20,8 @@ main = withSocketsDo $ do
     (Just tracker) <- load_tracker_file trackerPath
 
     let (Scurry (VpnConfig tapIp tapMask) (NetworkConfig mySockAddr)) = config
-        yourSockAddrs = filter (\a -> a /= mySockAddr) $
-            map tToS tracker
+        yourSockAddrs = filter (\(_,a) -> a /= mySockAddr) $
+            map (((,) Nothing) . tToS) tracker
 
     let frmJst (Just x) = x
         frmJst Nothing = error "If you can't type an IP address right, I'm not even going to try and run."

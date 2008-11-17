@@ -37,7 +37,7 @@ startCom tap sock initSS = do
 
     tst <- forkIO $ tapSourceThread tap ssRef chan
     swt <- forkIO $ sockWriteThread sock chan
-    sst <- forkIO $ sockSourceThread tap sock ssRef
+    sst <- forkIO $ sockSourceThread tap sock ssRef chan
     kat <- forkIO $ keepAliveThread ssRef chan
 
     -- For debugging
