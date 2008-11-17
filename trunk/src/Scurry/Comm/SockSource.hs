@@ -36,21 +36,21 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
 
     case msg of
          SFrame (_,frame) -> write_tap tap frame
-         SJoin mac        -> atomicUpdatePeers mac >> joinReply
-         SJoinReply mac   -> atomicUpdatePeers mac
+         SJoin mac        -> atomicUpdatePeers (Just mac) srcAddr >> joinReply
+         SJoinReply mac p -> atomicUpdatePeers (Just mac) srcAddr >> mapM_ (atomicUpdatePeers Nothing) p
          SKeepAlive       -> return ()
          SNotifyPeer _    -> putStrLn "Error: SNotifyPeer not supported"
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
          SPing pid        -> writeChan srcAddr (SEcho pid)
          SEcho eid        -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
          SUnknown         -> putStrLn "Error: SUnknown not supported"
-    where atomicUpdatePeers mac = atomicModifyIORef ssRef (updatePeers mac)
-          updatePeers mac (ScurryState ps m) = let peers = (Just mac,srcAddr) : (filter (\(_,a) -> a /= srcAddr) ps)
-                                               in (ScurryState peers m,())
+    where atomicUpdatePeers mac sa = atomicModifyIORef ssRef (updatePeers mac sa)
+          updatePeers mac sa (ScurryState ps m) = let peers = (mac,sa) : (filter (\(_,a) -> a /= srcAddr) ps)
+                                                  in (ScurryState peers m,())
           writeChan d m = atomically $ writeTChan chan (DestSingle d,m)
           joinReply = do
-            (ScurryState _ mymac) <- readIORef ssRef
-            writeChan srcAddr (SJoinReply mymac)
+            (ScurryState peers mymac) <- readIORef ssRef
+            writeChan srcAddr $ SJoinReply mymac $ map (\(_,p) -> p) peers
 
 sockDecode :: BSS.ByteString -> ScurryMsg
 sockDecode msg = decode (BS.fromChunks [msg])
