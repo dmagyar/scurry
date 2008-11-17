@@ -35,9 +35,17 @@ routeInfo :: TapDesc -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> (
 routeInfo tap ssRef chan (srcAddr,msg) = do
 
     case msg of
+         SFrame _       -> putStrLn $ (show srcAddr) ++ " -> " ++ "SFrame"
+         SJoin  _       -> putStrLn $ (show srcAddr) ++ " -> " ++ "SJoin"
+         SJoinReply _ _ -> putStrLn $ (show srcAddr) ++ " -> " ++ "SJoinReply"
+         SKeepAlive     -> putStrLn $ (show srcAddr) ++ " -> " ++ "SKeepAlive"
+         _ -> return ()
+
+    case msg of
          SFrame (_,frame) -> write_tap tap frame
          SJoin mac        -> atomicUpdatePeers (Just mac) srcAddr >> joinReply
-         SJoinReply mac p -> atomicUpdatePeers (Just mac) srcAddr >> mapM_ (atomicUpdatePeers Nothing) p
+         SJoinReply mac p -> do atomicUpdatePeers (Just mac) srcAddr
+                                mapM_ (atomicUpdatePeers Nothing) $ filter (\y -> y /= srcAddr) p
          SKeepAlive       -> return ()
          SNotifyPeer _    -> putStrLn "Error: SNotifyPeer not supported"
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
