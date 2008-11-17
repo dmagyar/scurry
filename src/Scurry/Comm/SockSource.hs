@@ -4,6 +4,7 @@ sockSourceThread
 
 import Control.Monad (forever)
 import Data.Binary
+import Data.List (find)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import Data.IORef
@@ -45,23 +46,32 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
 
     case msg of
          SFrame (_,frame) -> write_tap tap frame
-         SJoin mac        -> atomicUpdatePeers (Just mac) srcAddr >> joinReply
+         SJoin mac        -> atomicUpdatePeers (Just mac) srcAddr >> joinReply >> notify srcAddr
          SJoinReply mac p -> do atomicUpdatePeers (Just mac) srcAddr
                                 mapM_ (atomicUpdatePeers Nothing) p
          SKeepAlive       -> return ()
-         SNotifyPeer _    -> putStrLn "Error: SNotifyPeer not supported"
+         SNotifyPeer np   -> gotNotify np
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
-         SPing pid        -> writeChan srcAddr (SEcho pid)
+         SPing pid        -> writeChan (DestSingle srcAddr) (SEcho pid)
          SEcho eid        -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
-         SUnknown         -> putStrLn "Error: SUnknown not supported"
+         SUnknown         -> putStrLn $ "Error: Received an unknown message tag."
     where atomicUpdatePeers mac sa = atomicModifyIORef ssRef (updatePeers mac sa)
           updatePeers mac sa (ScurryState ps m) = let peers = (mac,sa) : (filter (\(_,a) -> a /= srcAddr) ps)
                                                   in (ScurryState peers m,())
-          writeChan d m = atomically $ writeTChan chan (DestSingle d,m)
+          writeChan d m = atomically $ writeTChan chan (d,m)
           joinReply = do
             (ScurryState peers mymac) <- readIORef ssRef
             -- TODO: The other side should also verify that it doesn't add itself to the peer list
-            writeChan srcAddr $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
+            writeChan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
+          notify p = do
+            (ScurryState peers _) <- readIORef ssRef
+            writeChan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
+          gotNotify p = do
+            (ScurryState peers _) <- readIORef ssRef
+            let e = find (\(_,x) -> x == p) peers
+            case e of
+                 Nothing -> atomicUpdatePeers Nothing p
+                 (Just _) -> putStrLn $ "Already have peer " ++ (show p)
 
 sockDecode :: BSS.ByteString -> ScurryMsg
 sockDecode msg = decode (BS.fromChunks [msg])
