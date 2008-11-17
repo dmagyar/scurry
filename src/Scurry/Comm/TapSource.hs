@@ -22,7 +22,7 @@ tapSourceThread tap ssRef chan = forever $
 frameSwitch :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> ScurryMsg -> IO ()
 frameSwitch ssRef chan m = do
     (ScurryState peers _) <- readIORef ssRef
-    mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) peers
+    mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) (map (\(_,p) -> p) peers)
 
 tapDecode :: BSS.ByteString -> ScurryMsg
 tapDecode bs = SFrame $ bsToEthernetTuple bs

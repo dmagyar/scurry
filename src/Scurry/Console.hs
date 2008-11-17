@@ -23,7 +23,7 @@ consoleThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 consoleThread ssRef chan = do
     (ScurryState peers mac) <- readIORef ssRef
 
-    mapM_ (\x -> GC.atomically $ writeTChan chan (DestSingle x,SJoin)) peers
+    mapM_ (\(_,x) -> GC.atomically $ writeTChan chan (DestSingle x,SJoin mac)) peers
 
     forever $ do
         ln <- getLine
@@ -42,9 +42,9 @@ consoleThread ssRef chan = do
 newPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
 newPeer ha pn state = let o = addAddr state (SockAddrInet pn ha)
                       in (o,())
-    where addAddr (ScurryState peers m ) sa = ScurryState (nub (sa : peers)) m
+    where addAddr (ScurryState peers m ) sa = ScurryState (nub ((Nothing,sa) : peers)) m
 
 delPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
 delPeer ha pn state = (delAddr state (SockAddrInet pn ha),())
-    where delAddr (ScurryState peers m) sa = ScurryState (filter (/= sa) peers) m
+    where delAddr (ScurryState peers m) sa = ScurryState (filter (\(_,p) -> p /= sa) peers) m
                     

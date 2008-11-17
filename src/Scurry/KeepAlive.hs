@@ -17,5 +17,5 @@ msToS = (* 1000000)
 keepAliveThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 keepAliveThread ssRef chan = forever $ do
     (ScurryState peers _) <- readIORef ssRef
-    atomically $ writeTChan chan (DestList peers,SKeepAlive)
+    atomically $ writeTChan chan (DestList (map (\(_,s) -> s) peers),SKeepAlive)
     threadDelay (msToS 10)

@@ -22,6 +22,7 @@ import Foreign.Ptr
 
 -- | MAC Address (6 8-bit words)
 data MACAddr = MACAddr (Word8,Word8,Word8,Word8,Word8,Word8)
+    deriving (Eq)
 
 instance Show MACAddr where
     show (MACAddr (a,b,c,d,e,f)) = let s = flip showHex ":"
@@ -39,7 +40,7 @@ instance Binary MACAddr where
         ; put o4 ; put o5 ; put o6 }
 
 -- | The state of the scurry application
-data ScurryState = ScurryState [SockAddr] MACAddr
+data ScurryState = ScurryState [(Maybe MACAddr,SockAddr)] MACAddr
     deriving (Show)
 
 -- | A TAP device descriptor. Since the C representation isn't uniform across
