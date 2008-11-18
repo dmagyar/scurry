@@ -40,7 +40,7 @@ instance Binary MACAddr where
         ; put o4 ; put o5 ; put o6 }
 
 -- | The state of the scurry application
-data ScurryState = ScurryState [(Maybe MACAddr,SockAddr)] MACAddr
+data ScurryState = ScurryState [(Maybe MACAddr,SockAddr)] (SockAddr,MACAddr)
     deriving (Show)
 
 -- | A TAP device descriptor. Since the C representation isn't uniform across

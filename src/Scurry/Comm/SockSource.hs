@@ -62,14 +62,12 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
                                               in (ScurryState peers m,())
           writeChan d m = atomically $ writeTChan chan (d,m)
           joinReply = do
-            (ScurryState peers mymac) <- readIORef ssRef
+            (ScurryState peers (_,mymac)) <- readIORef ssRef
             -- TODO: The other side should also verify that it doesn't add itself to the peer list
             writeChan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
           notify p = do
             (ScurryState peers _) <- readIORef ssRef
-            putStrLn $ "Before Notify: " ++ (show peers)
             writeChan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
-            putStrLn $ "After Notify: " ++ (show peers)
           gotNotify p = do
             (ScurryState peers _) <- readIORef ssRef
             let e = find (\(_,x) -> x == p) peers

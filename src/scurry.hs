@@ -30,7 +30,7 @@ main = withSocketsDo $ do
 
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
-        (Right (t,mac)) -> doWork t mySockAddr (ScurryState yourSockAddrs mac)
+        (Right (t,mac)) -> doWork t mySockAddr (ScurryState yourSockAddrs (mySockAddr,mac))
 
     where
         tToS (ScurryPeer ip port) = SockAddrInet port ip 

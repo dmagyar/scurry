@@ -22,6 +22,6 @@ keepAliveThread ssRef chan = forever $ do
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
           messenger (mac,addr) = do
             case mac of
-                 Nothing  -> do (ScurryState _ mymac) <- readIORef ssRef
+                 Nothing  -> do (ScurryState _ (_,mymac)) <- readIORef ssRef
                                 sendMsg (DestSingle addr) (SJoin mymac)
                  (Just _) -> sendMsg (DestSingle addr) (SKeepAlive)

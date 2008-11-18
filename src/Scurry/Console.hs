@@ -21,7 +21,7 @@ import Scurry.Types
 
 consoleThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 consoleThread ssRef chan = do
-    (ScurryState peers mac) <- readIORef ssRef
+    (ScurryState peers (_,mac)) <- readIORef ssRef
 
     mapM_ (\(_,x) -> GC.atomically $ writeTChan chan (DestSingle x,SJoin mac)) peers
 
