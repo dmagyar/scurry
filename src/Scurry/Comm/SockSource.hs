@@ -4,7 +4,7 @@ sockSourceThread
 
 import Control.Monad (forever)
 import Data.Binary
-import Data.List (find)
+import Data.List (find,nubBy)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import Data.IORef
@@ -47,7 +47,8 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
     case msg of
          SFrame (_,frame) -> write_tap tap frame
          SJoin mac        -> atomicUpdatePeers (Just mac) srcAddr >> joinReply >> notify srcAddr
-         SJoinReply mac p -> do atomicUpdatePeers (Just mac) srcAddr
+         SJoinReply mac p -> do putStrLn $ "Got peer list: " ++ (show p)
+                                atomicUpdatePeers (Just mac) srcAddr
                                 mapM_ (atomicUpdatePeers Nothing) p
          SKeepAlive       -> return ()
          SNotifyPeer np   -> gotNotify np
@@ -55,9 +56,10 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
          SPing pid        -> writeChan (DestSingle srcAddr) (SEcho pid)
          SEcho eid        -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
          SUnknown         -> putStrLn $ "Error: Received an unknown message tag."
-    where atomicUpdatePeers mac sa = atomicModifyIORef ssRef (updatePeers mac sa)
-          updatePeers mac sa (ScurryState ps m) = let peers = (mac,sa) : (filter (\(_,a) -> a /= srcAddr) ps)
-                                                  in (ScurryState peers m,())
+    where atomicUpdatePeers mac sa = atomicModifyIORef ssRef (addPeer mac sa)
+          addPeer mac sa (ScurryState ps m) = let nubber (_,a) (_,b) = a == b
+                                                  peers = nubBy nubber $ (mac,sa) : ps
+                                              in (ScurryState peers m,())
           writeChan d m = atomically $ writeTChan chan (d,m)
           joinReply = do
             (ScurryState peers mymac) <- readIORef ssRef
@@ -65,7 +67,9 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
             writeChan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
           notify p = do
             (ScurryState peers _) <- readIORef ssRef
+            putStrLn $ "Before Notify: " ++ (show peers)
             writeChan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
+            putStrLn $ "After Notify: " ++ (show peers)
           gotNotify p = do
             (ScurryState peers _) <- readIORef ssRef
             let e = find (\(_,x) -> x == p) peers
