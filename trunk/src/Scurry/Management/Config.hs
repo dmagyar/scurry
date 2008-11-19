@@ -8,10 +8,11 @@ module Scurry.Management.Config(
     load_scurry_config_file
 ) where
 
-import Network.Socket hiding (inet_addr,inet_ntoa)
 import Scurry.Util
 
 import Text.JSON
+
+import Scurry.Types.Network
 
 data Scurry = Scurry VpnConfig NetworkConfig
     deriving (Show)
@@ -22,10 +23,8 @@ data VpnConfig = VpnConfig DevIP DevMask
 data NetworkConfig = NetworkConfig EndPoint
     deriving (Show)
 
-type DevIP = HostAddress
-type DevMask = HostAddress
-
-type EndPoint = SockAddr
+type DevIP = ScurryAddress
+type DevMask = ScurryAddress
 
 load_scurry_config_file :: FilePath -> IO (Maybe Scurry)
 load_scurry_config_file file = do f <- readFile file
@@ -77,11 +76,10 @@ instance JSON VpnConfig where
     readJSON _ = vpn_err
 
 instance JSON NetworkConfig where
-    showJSON (NetworkConfig (SockAddrInet port host)) =
+    showJSON (NetworkConfig (EndPoint host (ScurryPort port))) =
         let (Just host') = inet_ntoa host
         in JSObject $ toJSObject [("host",JSString $ toJSString host'),
                                   ("port",JSRational (fromIntegral port))]
-    showJSON (NetworkConfig _) = error $ "Scurry doesn't support anything besides IPv4 yet. Sorry. :("
     
     readJSON (JSObject obj) = let objl = fromJSObject obj
                                   host = lookup "host" objl
@@ -92,7 +90,7 @@ instance JSON NetworkConfig where
         where rj (JSString h) (JSRational p) =
                 let h' = inet_addr $ fromJSString h
                 in case h' of
-                        (Just h'') -> Ok $ NetworkConfig $ SockAddrInet (truncate p) h''
+                        (Just h'') -> Ok $ NetworkConfig $ EndPoint h'' (ScurryPort (truncate p))
                         Nothing -> net_err
               rj _ _ = net_err
     readJSON _ = net_err

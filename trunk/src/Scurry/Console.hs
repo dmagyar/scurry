@@ -4,24 +4,24 @@ module Scurry.Console (
 
 import Control.Concurrent.STM.TChan
 import Control.Monad (forever)
-import Data.IORef
 import Data.List
--- import GHC.Conc
 import System.IO
 import System.Exit
-import Network.Socket hiding (inet_addr,inet_ntoa)
 import qualified GHC.Conc as GC
 
 import Scurry.Console.Parser
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.Types
+import Scurry.Types.Network
+
+import Scurry.State
 
 -- Console command interpreter
 
-consoleThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
-consoleThread ssRef chan = do
-    (ScurryState peers (_,mac)) <- readIORef ssRef
+consoleThread :: StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+consoleThread sr chan = do
+    (ScurryState peers _ mac) <- getState sr
 
     mapM_ (\(_,x) -> GC.atomically $ writeTChan chan (DestSingle x,SJoin mac)) peers
 
@@ -34,17 +34,8 @@ consoleThread ssRef chan = do
 
     where goodCmd cmd = case cmd of
                              CmdShutdown           -> exitWith ExitSuccess
-                             CmdListPeers          -> (readIORef ssRef) >>= (putStrLn . show)
-                             (CmdNewPeer ha pn)    -> atomicModifyIORef ssRef (newPeer ha pn)
-                             (CmdRemovePeer ha pn) -> atomicModifyIORef ssRef (delPeer ha pn) 
+                             CmdListPeers          -> (getState sr) >>= (putStrLn . show)
+                             (CmdNewPeer ha pn)    -> addPeer sr (Nothing, (EndPoint ha pn))
+                             (CmdRemovePeer ha pn) -> delPeer sr (EndPoint ha pn)
           badCmd err = putStrLn $ "Bad Command: " ++ (show err)
 
-newPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
-newPeer ha pn state = let o = addAddr state (SockAddrInet pn ha)
-                      in (o,())
-    where addAddr (ScurryState peers m ) sa = ScurryState (nub ((Nothing,sa) : peers)) m
-
-delPeer :: HostAddress -> PortNumber -> ScurryState -> (ScurryState, ())
-delPeer ha pn state = (delAddr state (SockAddrInet pn ha),())
-    where delAddr (ScurryState peers m) sa = ScurryState (filter (\(_,p) -> p /= sa) peers) m
-                    

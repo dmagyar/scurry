@@ -4,24 +4,24 @@ module Scurry.KeepAlive (
 
 import Control.Concurrent.STM.TChan
 import Control.Monad (forever)
-import Data.IORef
 import GHC.Conc
 
 import Scurry.Comm.Message
 import Scurry.Comm.Util
-import Scurry.Types
+
+import Scurry.State
 
 msToS :: Int -> Int
 msToS = (* 1000000)
 
-keepAliveThread :: (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
-keepAliveThread ssRef chan = forever $ do
-    (ScurryState peers _) <- readIORef ssRef
+keepAliveThread :: StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+keepAliveThread sr chan = forever $ do
+    peers <- getPeers sr
     mapM messenger peers
     threadDelay (msToS 10)
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
           messenger (mac,addr) = do
             case mac of
-                 Nothing  -> do (ScurryState _ (_,mymac)) <- readIORef ssRef
+                 Nothing  -> do mymac <- getMAC sr
                                 sendMsg (DestSingle addr) (SJoin mymac)
                  (Just _) -> sendMsg (DestSingle addr) (SKeepAlive)

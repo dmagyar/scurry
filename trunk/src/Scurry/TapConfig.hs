@@ -21,6 +21,8 @@ import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Internal as BSI
 import qualified Data.ByteString.Unsafe as BSU
 
+import Scurry.Types.Network
+
 getTapHandle :: String -> String -> IO (Either CInt (TapDesc,MACAddr))
 getTapHandle ip_str mask_str = do
     ip <- inet_addr ip_str

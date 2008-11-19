@@ -13,6 +13,7 @@ import Network.Socket.ByteString
 
 import Scurry.Comm.Util
 import Scurry.Comm.Message
+import Scurry.Types.Network
 
 sockWriteThread :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockWriteThread sock chan = forever $
@@ -22,7 +23,7 @@ sockWriter :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockWriter sock chan = do
     (dst,msg) <- atomically $ readTChan chan
     
-    let sendToAddr = sendTo sock (BSS.concat . BS.toChunks $ encode msg)
+    let sendToAddr = (sendTo sock (BSS.concat . BS.toChunks $ encode msg)) . epToSa
 
     case dst of
          DestSingle addr -> sendToAddr addr >> return ()

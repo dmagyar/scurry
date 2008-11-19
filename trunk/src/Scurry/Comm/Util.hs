@@ -8,15 +8,14 @@ module Scurry.Comm.Util (
 import Data.Binary
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString as BSS
-import Network.Socket (SockAddr(..))
 
-import Scurry.Types
+import Scurry.Types.Network
 
 readLength :: Int
 readLength = 1560
 
-data DestAddr = DestSingle SockAddr
-              | DestList [SockAddr]
+data DestAddr = DestSingle EndPoint
+              | DestList [EndPoint]
     deriving (Show)
 
 bsToEthernetTuple :: BSS.ByteString -> (EthernetHeader,BSS.ByteString)

@@ -7,7 +7,6 @@ module Scurry.Comm(
 
 
 import Control.Concurrent.STM.TChan
-import Data.IORef
 import GHC.Conc
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import System.IO
@@ -20,25 +19,27 @@ import Scurry.Comm.Util
 import Scurry.KeepAlive
 import Scurry.Console
 import Scurry.Types
+import Scurry.State
+import Scurry.Types.Network
 
 -- |Bind the socket to the specified socket address.
 -- This specifies the network configuration we are using
 -- as well.
-prepEndPoint :: SockAddr -> IO Socket
+prepEndPoint :: EndPoint -> IO Socket
 prepEndPoint ep = do
     s <- socket AF_INET Datagram defaultProtocol
-    bindSocket s ep
+    bindSocket s (epToSa ep)
     return s
 
 startCom :: TapDesc -> Socket -> ScurryState -> IO ()
 startCom tap sock initSS = do
-    ssRef <- newIORef initSS
+    sr <- mkState initSS
     chan  <- atomically $ newTChan
 
-    tst <- forkIO $ tapSourceThread tap ssRef chan
+    tst <- forkIO $ tapSourceThread tap sr chan
     swt <- forkIO $ sockWriteThread sock chan
-    sst <- forkIO $ sockSourceThread tap sock ssRef chan
-    kat <- forkIO $ keepAliveThread ssRef chan
+    sst <- forkIO $ sockSourceThread tap sock sr chan
+    kat <- forkIO $ keepAliveThread sr chan
 
     -- For debugging
     labelThread tst "TAP Source Thread"
@@ -47,5 +48,5 @@ startCom tap sock initSS = do
     labelThread kat "Keep Alive Thread"
 
     -- Last thread is a continuation of the main thread
-    consoleThread ssRef chan
+    consoleThread sr chan
 
