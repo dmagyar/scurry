@@ -5,8 +5,8 @@ module Scurry.Console.Parser (
 import Text.Parsec
 import Text.Parsec.String
 import Scurry.Util
-import Scurry.Types
 import Scurry.Types.Network
+import Scurry.Types.Console
 
 parseConsole :: String -> Either ParseError ConsoleCmd
 parseConsole = parse consoleCmd "Console"

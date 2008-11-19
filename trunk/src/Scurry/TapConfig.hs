@@ -16,12 +16,12 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 import System.IO
-import Scurry.Types
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Internal as BSI
 import qualified Data.ByteString.Unsafe as BSU
 
 import Scurry.Types.Network
+import Scurry.Types.TAP
 import Scurry.Util
 
 getTapHandle :: String -> String -> IO (Either CInt (TapDesc,MACAddr))

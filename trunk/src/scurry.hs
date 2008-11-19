@@ -10,9 +10,9 @@ import Scurry.TapConfig
 import Scurry.Comm
 import Scurry.Management.Config
 import Scurry.Management.Tracker
-import Scurry.Types
 import Scurry.State
 import Scurry.Types.Network
+import Scurry.Types.TAP
 
 main :: IO ()
 main = withSocketsDo $ do 
