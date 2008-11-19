@@ -18,9 +18,9 @@ import GHC.Conc
 import Scurry.TapConfig
 import Scurry.Comm.Message
 import Scurry.Comm.Util
-import Scurry.Types
 import Scurry.State
 import Scurry.Types.Network
+import Scurry.Types.TAP
 
 sockSourceThread :: TapDesc -> Socket -> StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
 sockSourceThread tap sock sr chan = forever $ do

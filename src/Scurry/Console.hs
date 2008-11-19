@@ -12,8 +12,8 @@ import qualified GHC.Conc as GC
 import Scurry.Console.Parser
 import Scurry.Comm.Message
 import Scurry.Comm.Util
-import Scurry.Types
 import Scurry.Types.Network
+import Scurry.Types.Console
 
 import Scurry.State
 
