@@ -96,8 +96,8 @@ instance Binary EndPoint where
                   _ -> error "Not a EndPoint"
     put (EndPoint ha pn) =
         do putWord8 0
-           put pn
            put ha
+           put pn
     -- #Job - removed, not compatable with windows
     -- put (SockAddrInet6 pn fi ha si) =
         -- do putWord8 1
