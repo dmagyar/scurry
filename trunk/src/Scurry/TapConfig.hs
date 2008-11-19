@@ -7,6 +7,7 @@ module Scurry.TapConfig(
     write_tap,
 ) where
 
+import Data.Maybe
 import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Ptr
@@ -15,25 +16,23 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 import System.IO
-import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Scurry.Types
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Internal as BSI
 import qualified Data.ByteString.Unsafe as BSU
 
 import Scurry.Types.Network
+import Scurry.Util
 
 getTapHandle :: String -> String -> IO (Either CInt (TapDesc,MACAddr))
 getTapHandle ip_str mask_str = do
-    ip <- inet_addr ip_str
-    mask <- inet_addr mask_str
-    open_tap ip mask
+    open_tap (fromJust $ inet_addr ip_str) (fromJust $ inet_addr mask_str)
 
 closeTapHandle :: TapDesc -> IO ()
 closeTapHandle tap = close_tap_ffi (unsafeForeignPtrToPtr tap)
 
-open_tap :: HostAddress -> HostAddress -> IO (Either CInt (TapDesc,MACAddr))
-open_tap addr mask = do
+open_tap :: ScurryAddress -> ScurryAddress -> IO (Either CInt (TapDesc,MACAddr))
+open_tap (ScurryAddress addr) (ScurryAddress mask) = do
     td' <- mkTapDesc
 
     let ti = (TapInfo td' $ MACAddr (255,255,255,255,255,255))
