@@ -94,10 +94,10 @@ instance Binary EndPoint where
                   -- 1 -> liftM4 SockAddrInet6 get get get get -- #Job removed, not compatable with windows
                   -- 2 -> liftM SockAddrUnix get
                   _ -> error "Not a EndPoint"
-    put (EndPoint ha pn) =
+    put (EndPoint sa sp) =
         do putWord8 0
-           put ha
-           put pn
+           put sa
+           put sp
     -- #Job - removed, not compatable with windows
     -- put (SockAddrInet6 pn fi ha si) =
         -- do putWord8 1
