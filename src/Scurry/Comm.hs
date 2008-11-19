@@ -8,7 +8,7 @@ module Scurry.Comm(
 
 import Control.Concurrent.STM.TChan
 import GHC.Conc
-import Network.Socket hiding (send, sendTo, recv, recvFrom)
+import Network.Socket (Socket(..), Family(..), socket, SocketType(..), defaultProtocol, bindSocket)
 import System.IO
 
 import Scurry.Comm.Message

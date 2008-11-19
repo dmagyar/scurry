@@ -3,7 +3,7 @@ module Main where
 import System.Environment
 import System.IO
 
-import Network.Socket hiding (send, sendTo, recv, recvFrom, inet_addr, inet_ntoa)
+import Network.Socket (withSocketsDo)
 
 import Scurry.Util
 import Scurry.TapConfig

@@ -4,7 +4,6 @@ module Scurry.Util(
     inet_ntoa,
 ) where
 
-import Network.Socket hiding (inet_addr,inet_ntoa)
 import qualified Network.Socket as INET (inet_addr,inet_ntoa)
 import System.IO.Unsafe (unsafePerformIO)
 
