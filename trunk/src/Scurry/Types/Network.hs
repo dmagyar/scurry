@@ -13,8 +13,9 @@ module Scurry.Types.Network (
 
 import Data.Binary
 import Numeric
-import Network.Socket (HostAddress,PortNumber(..),SockAddr(..))
+import Network.Socket (inet_ntoa,HostAddress,PortNumber(..),SockAddr(..))
 import Control.Monad (liftM,liftM2)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- | MAC Address (6 8-bit words)
 data MACAddr = MACAddr (Word8,Word8,Word8,Word8,Word8,Word8)
@@ -57,7 +58,10 @@ newtype ScurryAddress = ScurryAddress HostAddress
     deriving (Eq)
 
 instance Show ScurryAddress where
-    show (ScurryAddress ha) = show ha
+    -- We use unsafePerformIO here to avoid referencing the
+    -- version of inet_ntoa in Scurry.Util since this would
+    -- case a cycle. TODO: Fix this later.
+    show (ScurryAddress ha) = unsafePerformIO $ inet_ntoa ha
 
 newtype ScurryPort = ScurryPort PortNumber
     deriving (Eq)
