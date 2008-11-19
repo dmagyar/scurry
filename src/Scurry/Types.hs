@@ -1,47 +1,18 @@
 {-# OPTIONS -XEmptyDataDecls #-}
 module Scurry.Types(
-    ScurryState(..),
     ConsoleCmd(..),
     TapDesc,
     TapDescX,
     TapInfo(..),
-    SrcMAC,
-    DstMAC,
-    EthType,
-    MACAddr(..),
-    EthernetHeader(..),
     mkTapDesc,
 ) where
 
-import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Data.Binary
-import Numeric
 import Foreign.Storable
 import Foreign.ForeignPtr
 import Foreign.Ptr
 
--- | MAC Address (6 8-bit words)
-data MACAddr = MACAddr (Word8,Word8,Word8,Word8,Word8,Word8)
-    deriving (Eq)
-
-instance Show MACAddr where
-    show (MACAddr (a,b,c,d,e,f)) = let s = flip showHex ":"
-                                       l = flip showHex ""
-                                   in concat [s a, s b, s c,
-                                              s d, s e, l f]
-
-instance Binary MACAddr where
-    get = do
-        { o1 <- get ; o2 <- get ; o3 <- get 
-        ; o4 <- get ; o5 <- get ; o6 <- get 
-        ; return $ MACAddr (o1,o2,o3,o4,o5,o6) }
-    put (MACAddr (o1,o2,o3,o4,o5,o6)) = do
-        { put o1 ; put o2 ; put o3
-        ; put o4 ; put o5 ; put o6 }
-
--- | The state of the scurry application
-data ScurryState = ScurryState [(Maybe MACAddr,SockAddr)] (SockAddr,MACAddr)
-    deriving (Show)
+import Scurry.Types.Network
 
 -- | A TAP device descriptor. Since the C representation isn't uniform across
 -- the different platforms we're trying to support, we're going to pull some
@@ -95,25 +66,7 @@ instance Storable TapInfo where
 -- | Datatype for Console commands
 data ConsoleCmd = CmdShutdown
                 | CmdListPeers
-                | CmdNewPeer HostAddress PortNumber
-                | CmdRemovePeer HostAddress PortNumber
+                | CmdNewPeer ScurryAddress ScurryPort
+                | CmdRemovePeer ScurryAddress ScurryPort
     deriving (Show)
-
-type SrcMAC = MACAddr
-type DstMAC = MACAddr
-type EthType = Word16
-
-data EthernetHeader = EthernetHeader DstMAC SrcMAC EthType
-
-instance Show EthernetHeader where
-    show (EthernetHeader d s t) = concat ["{EthHdr ", (show s),
-                                          " -> ", (show d),
-                                          " :: 0x", (showHex t $ "}")]
-
-instance Binary EthernetHeader where
-    get = do
-        { d <- get ; s <- get ; t <- get
-        ; return $ EthernetHeader d s t }
-    put (EthernetHeader d s t) = do
-        { put d ; put s ; put t }
 

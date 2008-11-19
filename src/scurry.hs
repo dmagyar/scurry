@@ -11,6 +11,8 @@ import Scurry.Comm
 import Scurry.Management.Config
 import Scurry.Management.Tracker
 import Scurry.Types
+import Scurry.State
+import Scurry.Types.Network
 
 main :: IO ()
 main = withSocketsDo $ do 
@@ -30,12 +32,12 @@ main = withSocketsDo $ do
 
     case tap of
         (Left t)  -> putStrLn $ "Failed: " ++ (show t)
-        (Right (t,mac)) -> doWork t mySockAddr (ScurryState yourSockAddrs (mySockAddr,mac))
+        (Right (t,mac)) -> doWork t mySockAddr (ScurryState yourSockAddrs mySockAddr mac)
 
     where
-        tToS (ScurryPeer ip port) = SockAddrInet port ip 
+        tToS (ScurryPeer ip port) = EndPoint ip port 
 
-doWork :: TapDesc -> SockAddr -> ScurryState -> IO ()
+doWork :: TapDesc -> EndPoint -> ScurryState -> IO ()
 doWork tap mySockAddr state = do
     local <- prepEndPoint mySockAddr
     startCom tap local state

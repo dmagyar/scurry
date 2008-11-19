@@ -4,10 +4,9 @@ sockSourceThread
 
 import Control.Monad (forever)
 import Data.Binary
-import Data.List (find,nubBy)
+import Data.List (find)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
-import Data.IORef
 import System.IO
 import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
@@ -20,20 +19,22 @@ import Scurry.TapConfig
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.Types
+import Scurry.State
+import Scurry.Types.Network
 
-sockSourceThread :: TapDesc -> Socket -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> IO ()
-sockSourceThread tap sock ssRef chan = forever $ do
+sockSourceThread :: TapDesc -> Socket -> StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+sockSourceThread tap sock sr chan = forever $ do
     (addr,msg) <- sockReader sock
-    routeInfo tap ssRef chan (addr,sockDecode msg)
+    routeInfo tap sr chan (addr,sockDecode msg)
     return ()
     
-sockReader :: Socket -> IO (SockAddr,BSS.ByteString)
+sockReader :: Socket -> IO (EndPoint,BSS.ByteString)
 sockReader sock = do
     (msg,addr) <- recvFrom sock readLength
-    return (addr,msg)
+    return (saToEp addr,msg)
 
-routeInfo :: TapDesc -> (IORef ScurryState) -> (TChan (DestAddr,ScurryMsg)) -> (SockAddr,ScurryMsg) -> IO ()
-routeInfo tap ssRef chan (srcAddr,msg) = do
+routeInfo :: TapDesc -> StateRef -> (TChan (DestAddr,ScurryMsg)) -> (EndPoint,ScurryMsg) -> IO ()
+routeInfo tap sr chan (srcAddr,msg) = do
 
     {-
     case msg of
@@ -46,33 +47,29 @@ routeInfo tap ssRef chan (srcAddr,msg) = do
 
     case msg of
          SFrame (_,frame) -> write_tap tap frame
-         SJoin mac        -> atomicUpdatePeers (Just mac) srcAddr >> joinReply >> notify srcAddr
+         SJoin mac        -> addPeer sr ((Just mac),srcAddr) >> joinReply >> notify srcAddr
          SJoinReply mac p -> do putStrLn $ "Got peer list: " ++ (show p)
-                                atomicUpdatePeers (Just mac) srcAddr
-                                mapM_ (atomicUpdatePeers Nothing) p
+                                addPeer sr ((Just mac),srcAddr)
+                                mapM_ ((addPeer sr) . ((,) Nothing)) p
          SKeepAlive       -> return ()
          SNotifyPeer np   -> gotNotify np
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
          SPing pid        -> writeChan (DestSingle srcAddr) (SEcho pid)
          SEcho eid        -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
          SUnknown         -> putStrLn $ "Error: Received an unknown message tag."
-    where atomicUpdatePeers mac sa = atomicModifyIORef ssRef (addPeer mac sa)
-          addPeer mac sa (ScurryState ps m) = let nubber (_,a) (_,b) = a == b
-                                                  peers = nubBy nubber $ (mac,sa) : ps
-                                              in (ScurryState peers m,())
-          writeChan d m = atomically $ writeTChan chan (d,m)
+    where writeChan d m = atomically $ writeTChan chan (d,m)
           joinReply = do
-            (ScurryState peers (_,mymac)) <- readIORef ssRef
+            (ScurryState peers _ mymac) <- getState sr
             -- TODO: The other side should also verify that it doesn't add itself to the peer list
             writeChan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
           notify p = do
-            (ScurryState peers _) <- readIORef ssRef
+            peers <- getPeers sr
             writeChan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
           gotNotify p = do
-            (ScurryState peers _) <- readIORef ssRef
+            peers <- getPeers sr
             let e = find (\(_,x) -> x == p) peers
             case e of
-                 Nothing -> atomicUpdatePeers Nothing p
+                 Nothing -> addPeer sr (Nothing,p)
                  (Just _) -> putStrLn $ "Already have peer " ++ (show p)
 
 sockDecode :: BSS.ByteString -> ScurryMsg

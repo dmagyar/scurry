@@ -2,11 +2,12 @@ module Scurry.Management.Tracker where
 
 import Text.JSON
 import Scurry.Util
-import Network.Socket hiding (inet_addr,inet_ntoa)
+
+import Scurry.Types.Network
 
 type Tracker = [ScurryPeer]
 
-data ScurryPeer = ScurryPeer HostAddress PortNumber
+data ScurryPeer = ScurryPeer ScurryAddress ScurryPort
     deriving (Show)
 
 scurry_err :: Result a
@@ -28,11 +29,11 @@ instance JSON ScurryPeer where
         where rj (JSString h) (JSRational p) = let h' = inet_addr $ fromJSString h
                                                    p' = truncate p
                                                in case h' of
-                                                       (Just h'') -> Ok $ ScurryPeer h'' p'
+                                                       (Just h'') -> Ok $ ScurryPeer h'' (ScurryPort p')
                                                        _ -> scurry_err
               rj _ _ = scurry_err
     readJSON _ = scurry_err
 
-    showJSON (ScurryPeer ha pn) = JSObject $ toJSObject o
+    showJSON (ScurryPeer ha (ScurryPort pn)) = JSObject $ toJSObject o
         where o = [("host",JSString $ toJSString $ (\(Just v) -> v) $ inet_ntoa ha),
                    ("port",(JSRational . fromIntegral) pn)]

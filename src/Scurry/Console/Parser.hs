@@ -2,11 +2,11 @@ module Scurry.Console.Parser (
     parseConsole
 ) where
 
-import Network.Socket (HostAddress,PortNumber)
 import Text.Parsec
 import Text.Parsec.String
 import Scurry.Util
 import Scurry.Types
+import Scurry.Types.Network
 
 parseConsole :: String -> Either ParseError ConsoleCmd
 parseConsole = parse consoleCmd "Console"
@@ -43,7 +43,7 @@ cmdRemovePeer = do
     return $ CmdRemovePeer ip port
 
 {- Mostly helper parsers that don't exist in the Parsec libary -}    
-ip_port_pair :: Parser (HostAddress,PortNumber)
+ip_port_pair :: Parser (ScurryAddress,ScurryPort)
 ip_port_pair = do
     ip <- ip_str
     char ':'
@@ -55,7 +55,7 @@ ip_port_pair = do
     if (port' > 65535 || port' < 0)
        then parserFail "Not a valid port."
        else case ip' of
-                 (Just ip'') -> return (ip'',fromIntegral port')
+                 (Just ip'') -> return (ip'',ScurryPort $ fromIntegral port')
                  Nothing     -> parserFail "Not an ip address."
 
 ip_str :: Parser String
