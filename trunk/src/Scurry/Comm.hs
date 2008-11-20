@@ -18,6 +18,8 @@ import Scurry.Comm.SockWrite
 import Scurry.Comm.Util
 import Scurry.KeepAlive
 import Scurry.Console
+import Scurry.ConnectionManager
+
 import Scurry.State
 import Scurry.Types.Network
 import Scurry.Types.TAP
@@ -33,20 +35,23 @@ prepEndPoint ep = do
 
 startCom :: TapDesc -> Socket -> ScurryState -> IO ()
 startCom tap sock initSS = do
-    sr <- mkState initSS
-    chan  <- atomically $ newTChan
+    sr <- mkState initSS -- Initial ScurryState
+    swchan <- atomically $ newTChan -- SockWriter Channel
+    cmchan <- atomically $ newTChan -- Connection Manager Channel
 
-    tst <- forkIO $ tapSourceThread tap sr chan
-    swt <- forkIO $ sockWriteThread sock chan
-    sst <- forkIO $ sockSourceThread tap sock sr chan
-    kat <- forkIO $ keepAliveThread sr chan
+    tst <- forkIO $ tapSourceThread tap sr swchan
+    swt <- forkIO $ sockWriteThread sock swchan
+    sst <- forkIO $ sockSourceThread tap sock sr swchan
+    kat <- forkIO $ keepAliveThread sr swchan
+    cmt <- forkIO $ conMgrThread sr swchan cmchan
 
     -- For debugging
     labelThread tst "TAP Source Thread"
     labelThread swt "Socket Write Thread"
     labelThread sst "Socket Source Thread"
     labelThread kat "Keep Alive Thread"
+    labelThread cmt "Connection Manager Thread"
 
     -- Last thread is a continuation of the main thread
-    consoleThread sr chan
+    consoleThread sr swchan
 
