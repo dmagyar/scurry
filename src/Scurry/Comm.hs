@@ -41,7 +41,7 @@ startCom tap sock initSS = do
 
     tst <- forkIO $ tapSourceThread tap sr swchan
     swt <- forkIO $ sockWriteThread sock swchan
-    sst <- forkIO $ sockSourceThread tap sock sr swchan
+    sst <- forkIO $ sockSourceThread tap sock sr swchan cmchan
     kat <- forkIO $ keepAliveThread sr swchan
     cmt <- forkIO $ conMgrThread sr swchan cmchan
 
