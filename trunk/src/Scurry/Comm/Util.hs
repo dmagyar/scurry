@@ -14,6 +14,7 @@ import Scurry.Types.Network
 readLength :: Int
 readLength = 1560
 
+
 data DestAddr = DestSingle EndPoint
               | DestList [EndPoint]
     deriving (Show)

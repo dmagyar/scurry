@@ -12,14 +12,14 @@ import Network.Socket hiding (send, sendTo, recv, recvFrom)
 import Network.Socket.ByteString
 
 import Scurry.Comm.Util
-import Scurry.Comm.Message
 import Scurry.Types.Network
+import Scurry.Types.Threads
 
-sockWriteThread :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+sockWriteThread :: Socket -> SockWriterChan -> IO ()
 sockWriteThread sock chan = forever $
     sockWriter sock chan
 
-sockWriter :: Socket -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+sockWriter :: Socket -> SockWriterChan -> IO ()
 sockWriter sock chan = do
     (dst,msg) <- atomically $ readTChan chan
     
