@@ -25,12 +25,13 @@ frameSwitch :: StateRef -> SockWriterChan -> ScurryMsg -> IO ()
 frameSwitch sr chan m = do
     peers <- getPeers sr
     case m of 
-      SFrame ((EthernetHeader dst _ _), _) -> do
+      SFrame ((EthernetHeader dst _ _), _) -> 
         case (lookup (Just dst) peers) of 
-          Just p  -> atomically $ writeTChan chan (DestSingle p,m)
-          Nothing -> mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) (map (\(_,p) -> p) peers)
+          Just p  -> sendMsg p
+          Nothing -> mapM_ sendMsg (map (\(_,p) -> p) peers)
+        where sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)
       _ -> putStrLn $ "Error: Unexpected frame type from TAP"
-
+    
 tapDecode :: BSS.ByteString -> ScurryMsg
 tapDecode bs = SFrame $ bsToEthernetTuple bs
 
