@@ -14,12 +14,13 @@ import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.Types.Network
 import Scurry.Types.Console
+import Scurry.Types.Threads
 
 import Scurry.State
 
 -- Console command interpreter
 
-consoleThread :: StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+consoleThread :: StateRef -> SockWriterChan -> IO ()
 consoleThread sr chan = do
     (ScurryState peers _ mac) <- getState sr
 

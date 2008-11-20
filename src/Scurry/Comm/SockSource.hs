@@ -21,8 +21,9 @@ import Scurry.Comm.Util
 import Scurry.State
 import Scurry.Types.Network
 import Scurry.Types.TAP
+import Scurry.Types.Threads
 
-sockSourceThread :: TapDesc -> Socket -> StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+sockSourceThread :: TapDesc -> Socket -> StateRef -> SockWriterChan -> IO ()
 sockSourceThread tap sock sr chan = forever $ do
     (addr,msg) <- sockReader sock
     routeInfo tap sr chan (addr,sockDecode msg)
@@ -33,7 +34,7 @@ sockReader sock = do
     (msg,addr) <- recvFrom sock readLength
     return (saToEp addr,msg)
 
-routeInfo :: TapDesc -> StateRef -> (TChan (DestAddr,ScurryMsg)) -> (EndPoint,ScurryMsg) -> IO ()
+routeInfo :: TapDesc -> StateRef -> SockWriterChan -> (EndPoint,ScurryMsg) -> IO ()
 routeInfo tap sr chan (srcAddr,msg) = do
 
     {-

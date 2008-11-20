@@ -11,10 +11,12 @@ import Scurry.Comm.Util
 
 import Scurry.State
 
+import Scurry.Types.Threads
+
 msToS :: Int -> Int
 msToS = (* 1000000)
 
-keepAliveThread :: StateRef -> (TChan (DestAddr,ScurryMsg)) -> IO ()
+keepAliveThread :: StateRef -> SockWriterChan -> IO ()
 keepAliveThread sr chan = forever $ do
     peers <- getPeers sr
     mapM messenger peers
