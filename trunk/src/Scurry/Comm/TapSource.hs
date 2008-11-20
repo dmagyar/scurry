@@ -14,6 +14,7 @@ import Scurry.TapConfig
 import Scurry.State
 import Scurry.Types.TAP
 import Scurry.Types.Threads
+import Scurry.Types.Network
 
 tapSourceThread :: TapDesc -> StateRef -> SockWriterChan -> IO ()
 tapSourceThread tap sr chan = forever $
@@ -23,7 +24,12 @@ tapSourceThread tap sr chan = forever $
 frameSwitch :: StateRef -> SockWriterChan -> ScurryMsg -> IO ()
 frameSwitch sr chan m = do
     peers <- getPeers sr
-    mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) (map (\(_,p) -> p) peers)
+    case m of 
+      SFrame ((EthernetHeader dst _ _), _) -> do
+        case (lookup (Just dst) peers) of 
+          Just p  -> atomically $ writeTChan chan (DestSingle p,m)
+          Nothing -> mapM_ (\x -> atomically $ writeTChan chan (DestSingle x,m)) (map (\(_,p) -> p) peers)
+      _ -> putStrLn $ "Error: Unexpected frame type from TAP"
 
 tapDecode :: BSS.ByteString -> ScurryMsg
 tapDecode bs = SFrame $ bsToEthernetTuple bs
