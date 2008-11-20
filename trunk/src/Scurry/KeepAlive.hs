@@ -13,8 +13,7 @@ import Scurry.State
 
 import Scurry.Types.Threads
 
-msToS :: Int -> Int
-msToS = (* 1000000)
+import Scurry.Util
 
 keepAliveThread :: StateRef -> SockWriterChan -> IO ()
 keepAliveThread sr chan = forever $ do
