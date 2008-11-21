@@ -22,15 +22,18 @@ conMgrThread sr swc cmc = do
     hb <- forkIO $ heartBeatThread mv 
     cr <- forkIO $ chanReadThread mv cmc
 
-    forever $ do
-        mv' <- takeMVar mv
-        case mv' of
-            HB   -> return ()
-            CR m -> msgHandler sr m
+    manage mv >> return ()
+
+    where manage mv = do
+              mv' <- takeMVar mv
+              case mv' of
+                   HB   -> hbHandler sr
+                   CR m -> msgHandler sr m
+              manage mv -- Recursive call
+
 
 heartBeatThread :: MVar MM -> IO ()
 heartBeatThread mv = forever $ do
-    putStrLn $ "HB"
     threadDelay (msToS 5)
     putMVar mv HB
 
@@ -39,9 +42,11 @@ chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
 
+hbHandler :: StateRef -> IO ()
+hbHandler sr = return ()
+
 msgHandler :: StateRef -> (EndPoint,ScurryMsg) -> IO ()                                  
 msgHandler sr (ep,sm) = do
-    putStrLn $ "Msg"
     case sm of
         SKeepAlive -> return ()
         bad -> error $ "Software Design Error: msgHandler can't use " ++ (show bad)
