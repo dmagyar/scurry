@@ -52,20 +52,20 @@ routeInfo tap sr swchan cmchan (srcAddr,msg) = do
          SJoinReply mac p -> do putStrLn $ "Got peer list: " ++ (show p)
                                 addPeer sr ((Just mac),srcAddr)
                                 mapM_ ((addPeer sr) . ((,) Nothing)) p
-         SKeepAlive       -> return ()
+         SKeepAlive       -> writeChan cmchan srcAddr msg
          SNotifyPeer np   -> gotNotify np
          SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
-         SPing pid        -> writeChan (DestSingle srcAddr) (SEcho pid)
+         SPing pid        -> writeChan swchan (DestSingle srcAddr) (SEcho pid)
          SEcho eid        -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
          SUnknown         -> putStrLn $ "Error: Received an unknown message tag."
-    where writeChan d m = atomically $ writeTChan swchan (d,m)
+    where writeChan c d m = atomically $ writeTChan c (d,m)
           joinReply = do
             (ScurryState peers _ mymac) <- getState sr
             -- TODO: The other side should also verify that it doesn't add itself to the peer list
-            writeChan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
+            writeChan swchan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
           notify p = do
             peers <- getPeers sr
-            writeChan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
+            writeChan swchan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
           gotNotify p = do
             peers <- getPeers sr
             let e = find (\(_,x) -> x == p) peers

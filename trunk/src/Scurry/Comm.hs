@@ -18,7 +18,7 @@ import Scurry.Comm.SockWrite
 import Scurry.Comm.Util
 import Scurry.KeepAlive
 import Scurry.Console
-import Scurry.ConnectionManager
+import Scurry.Comm.ConnectionManager
 
 import Scurry.State
 import Scurry.Types.Network
