@@ -61,6 +61,10 @@ msgHandler sr swc (ep,sm) = do
         bad -> error $ "Software Design Error: msgHandler can't use " ++ (show bad)
 
     where
+        -- | When we get a SJoin message, we add the new peer to our
+        -- own peer list (if we don't have them recorded yet), inform
+        -- them of our MAC address and the peers we know about, and
+        -- then tell every one else we know about the new peer.
         joinReply = do
             (ScurryState peers _ mymac) <- getState sr        
             let d = (DestSingle ep)
@@ -68,11 +72,20 @@ msgHandler sr swc (ep,sm) = do
                 p' = filter (/= ep) e'
                 m = SJoinReply mymac p'
             atomically $ writeTChan swc (d,m)
+
+        -- | This alerts the other peers on our network that some one
+        -- has joined us.
         joinNotify = do
             peers <- getPeers sr
             let d = (DestList $ filter (/= ep) $ map (\(_,x) -> x) peers)
                 m = (SNotifyPeer ep)
             atomically $ writeTChan swc (d,m)
+
+        -- | Some one has informed us of a new peer. Check if we have
+        -- it in our list already. If we don't mark its MAC address
+        -- as Nothing in the peer list so that the KeepAlive will send
+        -- a SJoin message instead of a regular SKeepAlive to that 
+        -- peer.
         gotNotify p = do
             peers <- getPeers sr
             let e = find (\(_,x) -> x == p) peers
