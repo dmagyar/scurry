@@ -4,7 +4,6 @@ sockSourceThread
 
 import Control.Monad (forever)
 import Data.Binary
-import Data.List (find)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import System.IO
@@ -35,43 +34,21 @@ sockReader sock = do
     return (saToEp addr,msg)
 
 routeInfo :: TapDesc -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> IO ()
-routeInfo tap sr swchan cmchan (srcAddr,msg) = do
-
-    {-
-    case msg of
-         SFrame _       -> putStrLn $ (show srcAddr) ++ " -> " ++ "SFrame"
-         SJoin  _       -> putStrLn $ (show srcAddr) ++ " -> " ++ "SJoin"
-         SJoinReply _ _ -> putStrLn $ (show srcAddr) ++ " -> " ++ "SJoinReply"
-         SKeepAlive     -> putStrLn $ (show srcAddr) ++ " -> " ++ "SKeepAlive"
-         _ -> return ()
-    -}
+routeInfo tap _ swchan cmchan (srcAddr,msg) = do
 
     case msg of
          SFrame (_,frame) -> write_tap tap frame
-         SJoin mac        -> addPeer sr ((Just mac),srcAddr) >> joinReply >> notify srcAddr
-         SJoinReply mac p -> do putStrLn $ "Got peer list: " ++ (show p)
-                                addPeer sr ((Just mac),srcAddr)
-                                mapM_ ((addPeer sr) . ((,) Nothing)) p
-         SKeepAlive       -> writeChan cmchan srcAddr msg
-         SNotifyPeer np   -> gotNotify np
-         SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
-         SPing pid        -> writeChan swchan (DestSingle srcAddr) (SEcho pid)
-         SEcho eid        -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
-         SUnknown         -> putStrLn $ "Error: Received an unknown message tag."
-    where writeChan c d m = atomically $ writeTChan c (d,m)
-          joinReply = do
-            (ScurryState peers _ mymac) <- getState sr
-            -- TODO: The other side should also verify that it doesn't add itself to the peer list
-            writeChan swchan (DestSingle srcAddr) $ SJoinReply mymac $ filter (/= srcAddr) $ map (\(_,p) -> p) peers
-          notify p = do
-            peers <- getPeers sr
-            writeChan swchan (DestList $ filter (/= p) $ map (\(_,x) -> x) peers) (SNotifyPeer p)
-          gotNotify p = do
-            peers <- getPeers sr
-            let e = find (\(_,x) -> x == p) peers
-            case e of
-                 Nothing -> addPeer sr (Nothing,p)
-                 (Just _) -> putStrLn $ "Already have peer " ++ (show p)
+         SKeepAlive     -> conMgrFwd
+         SJoin _        -> conMgrFwd
+         SJoinReply _ _ -> conMgrFwd
+         SNotifyPeer _  -> conMgrFwd
+         SRequestPeer   -> putStrLn "Error: SRequestPeer not supported"
+         SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
+         SEcho eid      -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
+         SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
+    where conMgrFwd = writeChan cmchan srcAddr msg
+          sckWrtWrite d m = writeChan swchan d m
+          writeChan c d m = atomically $ writeTChan c (d,m)
 
 sockDecode :: BSS.ByteString -> ScurryMsg
 sockDecode msg = decode (BS.fromChunks [msg])
