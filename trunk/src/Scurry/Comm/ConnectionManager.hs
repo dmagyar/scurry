@@ -3,9 +3,11 @@ module Scurry.Comm.ConnectionManager (
 ) where
 
 import Data.List (find)
+import qualified Data.Map as M
 import Control.Monad (forever)
 import Control.Concurrent.STM
 import GHC.Conc
+import Data.Time
 
 import Scurry.State
 import Scurry.Util
@@ -18,21 +20,31 @@ import Scurry.Comm.Util
 data MM = HB
         | CR (EndPoint,ScurryMsg)
 
+data CMTState = CMTState {
+        kaStatus :: M.Map EndPoint ClockTime 
+    } deriving (Show)
+
 conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> IO ()
 conMgrThread sr swc cmc = do
     mv <- newEmptyMVar
     hb <- forkIO $ heartBeatThread mv 
     cr <- forkIO $ chanReadThread mv cmc
 
-    manage mv >> return ()
+    labelThread hb "CMT's Heart Beat Thread"
+    labelThread cr "CMT's Channel Reader Thread"
+
+    manage mv (CMTState null) >> return ()
 
     where
-        manage mv = do
+        -- | cmts is the conMgrThread state--an internal piece
+        -- of state used to keep track of things unique to the
+        -- manage function below.
+        manage mv cmts = do
             mv' <- takeMVar mv
             case mv' of
-                HB   -> hbHandler sr
-                CR m -> msgHandler sr swc m
-            manage mv -- Recursive call
+                HB   -> hbHandler sr cmts
+                CR m -> msgHandler sr swc cmts m
+            manage mv cmts -- Recursive call
 
 
 heartBeatThread :: MVar MM -> IO ()
@@ -46,17 +58,20 @@ chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                   in rd >>= pt
 
 hbHandler :: StateRef -> IO ()
-hbHandler sr = return ()
+hbHandler sr = do
+    ct <- getClockTime
+    return ()
 
 msgHandler :: StateRef -> SockWriterChan -> (EndPoint,ScurryMsg) -> IO ()                                  
 msgHandler sr swc (ep,sm) = do
     case sm of
         SKeepAlive       -> return ()
-        SJoin mac        -> addPeer sr ((Just mac),ep) >>
-                            joinReply >> joinNotify
-        SJoinReply mac p -> addPeer sr ((Just mac),ep) >>
-                            mapM_ ((addPeer sr) . ((,) Nothing)) p
+        SJoin mac        -> do { addPeer sr ((Just mac),ep)
+                               ; joinReply ; joinNotify }
+        SJoinReply mac p -> do { addPeer sr ((Just mac),ep)
+                               ; mapM_ ((addPeer sr) . ((,) Nothing)) p }
         SNotifyPeer np   -> gotNotify np
+        SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
 
         bad -> error $ "Software Design Error: msgHandler can't use " ++ (show bad)
 

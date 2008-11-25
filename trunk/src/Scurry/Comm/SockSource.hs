@@ -42,7 +42,7 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
          SJoin _        -> conMgrFwd
          SJoinReply _ _ -> conMgrFwd
          SNotifyPeer _  -> conMgrFwd
-         SRequestPeer   -> putStrLn "Error: SRequestPeer not supported"
+         SRequestPeer   -> conMgrFwd
          SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
          SEcho eid      -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
          SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
