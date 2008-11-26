@@ -21,8 +21,10 @@ data MM = HB
         | CR (EndPoint,ScurryMsg)
 
 data CMTState = CMTState {
-        kaStatus :: M.Map EndPoint ClockTime 
+        kaStatus :: EPKAMap
     } deriving (Show)
+
+type EPKAMap = M.Map EndPoint UTCTime
 
 conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> IO ()
 conMgrThread sr swc cmc = do
@@ -33,7 +35,7 @@ conMgrThread sr swc cmc = do
     labelThread hb "CMT's Heart Beat Thread"
     labelThread cr "CMT's Channel Reader Thread"
 
-    manage mv (CMTState null) >> return ()
+    manage mv (CMTState M.empty) >> return ()
 
     where
         -- | cmts is the conMgrThread state--an internal piece
@@ -57,13 +59,13 @@ chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
 
-hbHandler :: StateRef -> IO ()
-hbHandler sr = do
-    ct <- getClockTime
+hbHandler :: StateRef -> CMTState -> IO ()
+hbHandler sr cmts = do
+    -- ct <- getCurrentTime
     return ()
 
-msgHandler :: StateRef -> SockWriterChan -> (EndPoint,ScurryMsg) -> IO ()                                  
-msgHandler sr swc (ep,sm) = do
+msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO ()                                  
+msgHandler sr swc cmts (ep,sm) = do
     case sm of
         SKeepAlive       -> return ()
         SJoin mac        -> do { addPeer sr ((Just mac),ep)
