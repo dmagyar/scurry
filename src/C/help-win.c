@@ -128,10 +128,10 @@ static int is_tap_win32_dev(const char *guid)
 
     status = RegOpenKeyEx(
         HKEY_LOCAL_MACHINE,
-        ADAPTER_KEY,
+        (LPCTSTR) ADAPTER_KEY,
         0,
         KEY_READ,
-        &netcard_key);
+        (PHKEY)&netcard_key);
 
     if (status != ERROR_SUCCESS) {
         return FALSE;
@@ -151,7 +151,7 @@ static int is_tap_win32_dev(const char *guid)
         status = RegEnumKeyEx(
             netcard_key,
             i,
-            enum_name,
+            (LPTSTR) enum_name,
             &len,
             NULL,
             NULL,
@@ -169,7 +169,7 @@ static int is_tap_win32_dev(const char *guid)
 
         status = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
-            unit_string,
+            (LPCTSTR) unit_string,
             0,
             KEY_READ,
             &unit_key);
@@ -180,7 +180,7 @@ static int is_tap_win32_dev(const char *guid)
             len = sizeof (component_id);
             status = RegQueryValueEx(
                 unit_key,
-                component_id_string,
+                (LPCTSTR) component_id_string,
                 NULL,
                 &data_type,
                 component_id,
@@ -190,7 +190,7 @@ static int is_tap_win32_dev(const char *guid)
                 len = sizeof (net_cfg_instance_id);
                 status = RegQueryValueEx(
                     unit_key,
-                    net_cfg_instance_id_string,
+                    (LPCTSTR) net_cfg_instance_id_string,
                     NULL,
                     &data_type,
                     net_cfg_instance_id,
@@ -228,7 +228,7 @@ static int get_device_guid(
 
     status = RegOpenKeyEx(
         HKEY_LOCAL_MACHINE,
-        NETWORK_CONNECTIONS_KEY,
+        (LPCTSTR) NETWORK_CONNECTIONS_KEY,
         0,
         KEY_READ,
         &control_net_key);
@@ -250,7 +250,7 @@ static int get_device_guid(
         status = RegEnumKeyEx(
             control_net_key,
             i,
-            enum_name,
+            (LPTSTR) enum_name,
             &len,
             NULL,
             NULL,
@@ -270,7 +270,7 @@ static int get_device_guid(
 
         status = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
-            connection_string,
+            (LPCTSTR) connection_string,
             0,
             KEY_READ,
             &connection_key);
@@ -279,7 +279,7 @@ static int get_device_guid(
             len = sizeof (name_data);
             status = RegQueryValueEx(
                 connection_key,
-                name_string,
+                (LPTSTR) name_string,
                 NULL,
                 &name_type,
                 name_data,
@@ -378,7 +378,7 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
               TAPSUFFIX);
 
     handle = CreateFile (
-        device_path,
+        (LPCTSTR) device_path,
         GENERIC_READ | GENERIC_WRITE,
         0,
         0,
