@@ -1,0 +1,74 @@
+Name:          Scurry
+Version:       0.0.1
+Category:      Network
+Description:   A distributed VPN system written in Haskell.
+License:       BSD3
+License-File:  LICENSE
+Author:        John Van Enk
+Maintainer:    vanenkj@gmail.com
+Copyright:     John Van Enk, 2008
+
+Cabal-Version: >= 1.2.0
+Build-Type:    Simple
+
+extra-source-files: src/C/help.h
+
+executable scurry
+    build-depends: base >= 3.0.0.0
+    build-depends: binary >= 0.4.3.1
+    build-depends: network >= 2.1.0.0
+    build-depends: network-bytestring >= 0.1.1.2
+    build-depends: bytestring >= 0.9.1.3
+    build-depends: json >= 0.3.3
+    build-depends: stm >= 2.1.1.0
+    build-depends: parsec >= 3.0.0
+    build-depends: containers
+    build-depends: time
+
+    if os(mingw32)
+        c-sources:          src/C/help-win.c
+        extra-libraries:    Iphlpapi
+        cc-options:         -D MINGW32
+
+    if os(linux)
+        build-depends: unix >= 2.3.0.0
+        c-sources:          src/C/help-linux.c
+        cc-options:         -D LINUX
+
+    if os(darwin) || os(freebsd)
+        build-depends: unix >= 2.3.0.0
+        c-sources:          src/C/help-bsd.c
+        cc-options:         -D BSD
+ 
+    hs-source-dirs:     src
+    ghc-options:        -Wall -O2 -threaded
+    main-is:            scurry.hs
+    
+executable scurry-test
+    build-depends: base >= 3.0.0.0
+    build-depends: binary >= 0.4.3.1
+    build-depends: network >= 2.1.0.0
+    build-depends: network-bytestring >= 0.1.1.2
+    build-depends: bytestring >= 0.9.0.1
+    build-depends: json >= 0.3.3
+    build-depends: stm >= 2.1.1.0
+    build-depends: parsec >= 3.0.0
+
+    if os(mingw32)
+        c-sources:          src/C/help-win.c
+        extra-libraries:    Iphlpapi
+        cc-options:         -D MINGW32
+
+    if os(linux)
+        build-depends: unix >= 2.3.0.0
+        c-sources:          src/C/help-linux.c
+        cc-options:         -D LINUX
+
+    if os(darwin) || os(freebsd)
+        build-depends: unix >= 2.3.0.0
+        c-sources:          src/C/help-bsd.c
+        cc-options:         -D BSD
+ 
+    hs-source-dirs:     src
+    ghc-options:        -Wall -O2 -threaded
+    main-is:            scurry-test.hs
