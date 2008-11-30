@@ -20,12 +20,15 @@ import Scurry.Comm.Util
 data MM = HB
         | CR (EndPoint,ScurryMsg)
 
+-- | Connection Manager Thread State
 data CMTState = CMTState {
         kaStatus :: EPKAMap
     } deriving (Show)
 
+-- | End Point to Keep Alive time mapping
 type EPKAMap = M.Map EndPoint UTCTime
 
+-- | Connection Manager Thread
 conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> IO ()
 conMgrThread sr swc cmc = do
     mv <- newEmptyMVar
@@ -49,19 +52,27 @@ conMgrThread sr swc cmc = do
             manage mv cmts -- Recursive call
 
 
+-- | The Heart Beat Thread's purpose is to wake up the Connection
+-- Manager and have it check everything for sanity and make sure
+-- any stale connections are cleaned out.
 heartBeatThread :: MVar MM -> IO ()
 heartBeatThread mv = forever $ do
     threadDelay (msToS 5)
+    ct <- getCurrentTime
     putMVar mv HB
 
+-- | The Channel Reader Thread's purpose is to pull an item off
+-- from the TChan and alert the Connection Manager when an item
+-- is ready for processing.
 chanReadThread :: MVar MM -> ConMgrChan -> IO ()
 chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
 
+-- | Heart Beat handler
 hbHandler :: StateRef -> CMTState -> IO ()
 hbHandler sr cmts = do
-    -- ct <- getCurrentTime
+    ct <- getCurrentTime
     return ()
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO ()                                  
