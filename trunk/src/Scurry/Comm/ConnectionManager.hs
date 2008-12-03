@@ -16,17 +16,36 @@ import Scurry.Types.Network
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 
--- | (M)anager (M)essage is either a (H)eart (B)eat or a (C)hannel (R)ead
-data MM = HB
-        | CR (EndPoint,ScurryMsg)
-
 -- | Connection Manager Thread State
 data CMTState = CMTState {
         kaStatus :: EPKAMap
     } deriving (Show)
 
 -- | End Point to Keep Alive time mapping
-type EPKAMap = M.Map EndPoint UTCTime
+type EPKAMap = M.Map EndPoint EPStatus
+
+-- | The maximum number of attempts we'll try and 
+-- establish a connection.
+maxEstablishAttempts :: Int
+maxEstablishAttempts = 5
+
+-- | The amount of time we will allow a peer to go
+-- without a KeepAlive before we drop the connection.
+-- In seconds.
+staleConnection :: Int
+staleConnection = 60
+
+-- | A status type that determines the state specific
+-- peers are in.
+--  - EPUnestablished holds the number of attempts to connect
+--  - EPEstablished holds the time since the last KeepAlive
+data EPStatus = EPUnestablished Int
+              | EPEstablished UTCTime
+    deriving (Show)
+
+-- | (M)anager (M)essage is either a (H)eart (B)eat or a (C)hannel (R)ead
+data MM = HB
+        | CR (EndPoint,ScurryMsg)
 
 -- | Connection Manager Thread
 conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> IO ()
@@ -47,8 +66,9 @@ conMgrThread sr swc cmc = do
         manage mv cmts = do
             mv' <- takeMVar mv
             case mv' of
-                HB   -> hbHandler sr cmts
+                HB   -> return ()
                 CR m -> msgHandler sr swc cmts m
+            checkConnections sr cmts            
             manage mv cmts -- Recursive call
 
 
@@ -58,7 +78,6 @@ conMgrThread sr swc cmc = do
 heartBeatThread :: MVar MM -> IO ()
 heartBeatThread mv = forever $ do
     threadDelay (msToS 5)
-    ct <- getCurrentTime
     putMVar mv HB
 
 -- | The Channel Reader Thread's purpose is to pull an item off
@@ -68,10 +87,9 @@ chanReadThread :: MVar MM -> ConMgrChan -> IO ()
 chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
-
--- | Heart Beat handler
-hbHandler :: StateRef -> CMTState -> IO ()
-hbHandler sr cmts = do
+-- | Connection Checker
+checkConnections :: StateRef -> CMTState -> IO ()
+checkConnections sr cmts = do
     ct <- getCurrentTime
     return ()
 
@@ -82,7 +100,7 @@ msgHandler sr swc cmts (ep,sm) = do
         SJoin mac        -> do { addPeer sr ((Just mac),ep)
                                ; joinReply ; joinNotify }
         SJoinReply mac p -> do { addPeer sr ((Just mac),ep)
-                               ; mapM_ ((addPeer sr) . ((,) Nothing)) p }
+                               ; mapM_ ((addPeer sr) . ((,) Nothing)) p } -- <<< Here is where we need to change things
         SNotifyPeer np   -> gotNotify np
         SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
 
