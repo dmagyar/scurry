@@ -19,7 +19,7 @@ import System.IO.Unsafe (unsafePerformIO)
 
 -- | MAC Address (6 8-bit words)
 data MACAddr = MACAddr (Word8,Word8,Word8,Word8,Word8,Word8)
-    deriving (Eq)
+    deriving (Eq,Ord)
 
 instance Show MACAddr where
     show (MACAddr (a,b,c,d,e,f)) = let s = flip showHex ":"
@@ -55,7 +55,7 @@ instance Binary EthernetHeader where
 
 
 newtype ScurryAddress = ScurryAddress HostAddress
-    deriving (Eq)
+    deriving (Eq,Ord)
 
 instance Show ScurryAddress where
     -- We use unsafePerformIO here to avoid referencing the
@@ -64,13 +64,13 @@ instance Show ScurryAddress where
     show (ScurryAddress ha) = unsafePerformIO $ inet_ntoa ha
 
 newtype ScurryPort = ScurryPort PortNumber
-    deriving (Eq)
+    deriving (Eq,Ord)
 
 instance Show ScurryPort where
     show (ScurryPort pn) = show pn
 
 data EndPoint = EndPoint ScurryAddress ScurryPort
-    deriving (Show,Eq)
+    deriving (Show,Eq,Ord)
 
 epToSa :: EndPoint -> SockAddr
 epToSa (EndPoint (ScurryAddress ha) (ScurryPort pn)) = SockAddrInet pn ha 
