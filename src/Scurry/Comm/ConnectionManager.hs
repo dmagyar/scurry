@@ -57,7 +57,7 @@ conMgrThread sr swc cmc = do
     labelThread hb "CMT's Heart Beat Thread"
     labelThread cr "CMT's Channel Reader Thread"
 
-    manage mv (CMTState M.empty) >> return ()
+    manage mv (CMTState M.empty)
 
     where
         -- | cmts is the conMgrThread state--an internal piece
