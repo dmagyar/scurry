@@ -32,8 +32,8 @@ maxEstablishAttempts = 5
 -- | The amount of time we will allow a peer to go
 -- without a KeepAlive before we drop the connection.
 -- In seconds.
-staleConnection :: Int
-staleConnection = 60
+staleConnection :: NominalDiffTime
+staleConnection = 60 -- seconds
 
 -- | A status type that determines the state specific
 -- peers are in.
@@ -88,11 +88,38 @@ chanReadThread :: MVar MM -> ConMgrChan -> IO ()
 chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
--- | Connection Checker
+-- | Connection Checker:
+--   - Make sure that the connections are current (not stale)
+--   - Make sure that the connections are established
 checkConnections :: StateRef -> CMTState -> IO CMTState
 checkConnections sr cmts = do
     ct <- getCurrentTime
-    return cmts
+    ps <- getPeers sr
+
+    -- 1. Grab all the EndPoints (ps')
+    -- 2. Check which of them need to be removed (bad)
+    -- 3. Make a map we can run a difference on (bad')
+    -- 4. Make a final map with all the good peers (good)
+    let ps' = map snd ps
+        bad = filter (\(_,v) -> v) $ map (check_p ct) ps'
+        bad' = M.fromList $ map (\(e,_) -> (e,Nothing)) bad
+        good = M.differenceWithKey (\_ _ _ -> Nothing) (kaStatus cmts) bad'
+
+    mapM_ (delPeer sr . fst) bad
+    return $ cmts { kaStatus = good }
+
+  where
+    -- | Returns true when the end point needs to be removed
+    check_p ct p = case (M.lookup p (kaStatus cmts)) of
+                        Nothing -> error "PROGRAMMING ERROR: Peer not in CM Map."
+                        Just eps -> (p,hdl_eps eps ct)
+    hdl_eps e ct = case e of
+                     EPUnestablished ue -> if ue > maxEstablishAttempts
+                                              then True
+                                              else False
+                     EPEstablished   es -> if (es `diffUTCTime` ct) > staleConnection
+                                              then True
+                                              else False
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
@@ -106,7 +133,11 @@ msgHandler sr swc cmts (ep,sm) = do
         bad -> r_bad bad
 
     where
-        r_SKeepAlive = return cmts
+        r_SKeepAlive = do
+            ct <- getCurrentTime
+            return $ cmts { kaStatus = (M.insert ep
+                                                 (EPEstablished ct)
+                                                 (kaStatus cmts)) }
         
         r_SJoin mac = do
             addPeer sr ((Just mac),ep)
