@@ -63,13 +63,14 @@ conMgrThread sr swc cmc = do
         -- | cmts is the conMgrThread state--an internal piece
         -- of state used to keep track of things unique to the
         -- manage function below.
+        manage :: MVar MM -> CMTState -> IO ()
         manage mv cmts = do
             mv' <- takeMVar mv
-            case mv' of
-                HB   -> return ()
-                CR m -> msgHandler sr swc cmts m
-            checkConnections sr cmts            
-            manage mv cmts -- Recursive call
+            cmts' <- case mv' of
+                          HB   -> return cmts
+                          CR m -> msgHandler sr swc cmts m
+            cmts'' <- checkConnections sr cmts'            
+            manage mv cmts'' -- Recursive call
 
 
 -- | The Heart Beat Thread's purpose is to wake up the Connection
@@ -88,25 +89,46 @@ chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
 -- | Connection Checker
-checkConnections :: StateRef -> CMTState -> IO ()
+checkConnections :: StateRef -> CMTState -> IO CMTState
 checkConnections sr cmts = do
     ct <- getCurrentTime
-    return ()
+    return cmts
 
-msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO ()                                  
+msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
     case sm of
-        SKeepAlive       -> return ()
-        SJoin mac        -> do { addPeer sr ((Just mac),ep)
-                               ; joinReply ; joinNotify }
-        SJoinReply mac p -> do { addPeer sr ((Just mac),ep)
-                               ; mapM_ ((addPeer sr) . ((,) Nothing)) p } -- <<< Here is where we need to change things
-        SNotifyPeer np   -> gotNotify np
-        SRequestPeer     -> putStrLn "Error: SRequestPeer not supported"
+        SKeepAlive       -> r_SKeepAlive
+        SJoin mac        -> r_SJoin mac
+        SJoinReply mac p -> r_SJoinReply mac p
+        SNotifyPeer np   -> r_SNotifyPeer np
+        SRequestPeer     -> r_SRequestPeer
 
-        bad -> error $ "Software Design Error: msgHandler can't use " ++ (show bad)
+        bad -> r_bad bad
 
     where
+        r_SKeepAlive = return cmts
+        
+        r_SJoin mac = do
+            addPeer sr ((Just mac),ep)
+            joinReply
+            joinNotify
+            return cmts
+
+        r_SJoinReply mac p = do
+            addPeer sr ((Just mac),ep)
+            mapM_ ((addPeer sr) . ((,) Nothing)) p
+            return cmts
+
+        r_SNotifyPeer np = do
+            gotNotify np
+            return cmts
+
+        r_SRequestPeer = do
+            putStrLn "Error: SRequestPeer not supported"
+            return cmts
+
+        r_bad bad = error $ "Software Design Error: msgHandler can't use " ++ (show bad)
+
         -- | When we get a SJoin message, we add the new peer to our
         -- own peer list (if we don't have them recorded yet), inform
         -- them of our MAC address and the peers we know about, and
