@@ -69,7 +69,8 @@ conMgrThread sr swc cmc = do
             cmts' <- case mv' of
                           HB   -> return cmts
                           CR m -> msgHandler sr swc cmts m
-            cmts'' <- checkConnections sr cmts'            
+            cmts'' <- cleanConnections sr cmts'            
+            manageConnections sr cmts'' swc
             manage mv cmts'' -- Recursive call
 
 
@@ -88,11 +89,11 @@ chanReadThread :: MVar MM -> ConMgrChan -> IO ()
 chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
                                       pt = (putMVar mv) . CR
                                   in rd >>= pt
--- | Connection Checker:
+-- | Connection Cleaner:
 --   - Make sure that the connections are current (not stale)
 --   - Make sure that the connections are established
-checkConnections :: StateRef -> CMTState -> IO CMTState
-checkConnections sr cmts = do
+cleanConnections :: StateRef -> CMTState -> IO CMTState
+cleanConnections sr cmts = do
     ct <- getCurrentTime
     ps <- getPeers sr
 
@@ -108,18 +109,25 @@ checkConnections sr cmts = do
     mapM_ (delPeer sr . fst) bad
     return $ cmts { kaStatus = good }
 
-  where
-    -- | Returns true when the end point needs to be removed
-    check_p ct p = case (M.lookup p (kaStatus cmts)) of
-                        Nothing -> error "PROGRAMMING ERROR: Peer not in CM Map."
-                        Just eps -> (p,hdl_eps eps ct)
-    hdl_eps e ct = case e of
-                     EPUnestablished ue -> if ue > maxEstablishAttempts
-                                              then True
-                                              else False
-                     EPEstablished   es -> if (es `diffUTCTime` ct) > staleConnection
-                                              then True
-                                              else False
+    where
+        -- | Returns true when the end point needs to be removed
+        check_p ct p = case (M.lookup p (kaStatus cmts)) of
+                            Nothing -> error "PROGRAMMING ERROR: Peer not in CM Map."
+                            Just eps -> (p,hdl_eps eps ct)
+        hdl_eps e ct = case e of
+                            EPUnestablished ue -> if ue > maxEstablishAttempts
+                                                     then True
+                                                     else False
+                            EPEstablished   es -> if (es `diffUTCTime` ct) > staleConnection
+                                                     then True
+                                                     else False
+
+-- | Connection Manager:
+--   - Sends out a SJoin message if the peer hasn't been connected yet
+manageConnections :: StateRef -> CMTState -> SockWriterChan -> IO ()
+manageConnections sr cmts swc = do
+    -- TODO: Fill in logic
+    return ()
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
