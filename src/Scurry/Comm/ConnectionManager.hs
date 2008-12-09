@@ -124,10 +124,20 @@ cleanConnections sr cmts = do
 
 -- | Connection Manager:
 --   - Sends out a SJoin message if the peer hasn't been connected yet
-manageConnections :: StateRef -> CMTState -> SockWriterChan -> IO ()
+manageConnections :: StateRef -> CMTState -> SockWriterChan -> IO CMTState
 manageConnections sr cmts swc = do
     -- TODO: Fill in logic
-    return ()
+    
+    let l = M.toList (kaStatus cmts)
+        w msg = atomically $ writeTChan swc msg
+        m t@(ep,s) = case s of
+                          -- The peer is not established, send a join request
+                          (EPUnestablished x) -> do (getMAC sr) >>= (\y -> w $ (DestSingle ep,SJoin y))
+                                                    return (ep,EPUnestablished (x + 1))
+                          -- The peer is fine, don't do anything
+                          est -> return t
+
+    (mapM m l) >>= (return . (\x -> (cmts { kaStatus = x })) . M.fromList)
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
