@@ -42,6 +42,10 @@ data EPStatus = EPUnestablished Int
               | EPEstablished UTCTime
     deriving (Show)
 
+-- | An EPStatus representing a new, unestablished peer.
+freshEPStatus :: EPStatus
+freshEPStatus = EPUnestablished 0
+
 -- | (M)anager (M)essage is either a (H)eart (B)eat or a (C)hannel (R)ead
 data MM = HB
         | CR (EndPoint,ScurryMsg)
@@ -173,7 +177,7 @@ msgHandler sr swc cmts (ep,sm) = do
             let s = kaStatus cmts
                 e = M.lookup np s
             case e of
-                 Nothing  -> return $ cmts {kaStatus = M.insert np (EPUnestablished 0) s}
+                 Nothing  -> return $ cmts {kaStatus = M.insert np freshEPStatus s}
                  (Just _) -> return cmts -- Either establishing or connected
 
         r_SRequestPeer = do
