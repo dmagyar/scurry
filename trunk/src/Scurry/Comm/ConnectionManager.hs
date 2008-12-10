@@ -2,7 +2,6 @@ module Scurry.Comm.ConnectionManager (
     conMgrThread,
 ) where
 
-import Data.List (find)
 import qualified Data.Map as M
 import Control.Monad (forever)
 import Control.Concurrent.STM
@@ -135,7 +134,7 @@ manageConnections sr cmts swc = do
                           (EPUnestablished x) -> do (getMAC sr) >>= (\y -> w $ (DestSingle ep,SJoin y))
                                                     return (ep,EPUnestablished (x + 1))
                           -- The peer is fine, don't do anything
-                          est -> return t
+                          _ -> return t
 
     (mapM m l) >>= (return . (\x -> (cmts { kaStatus = x })) . M.fromList)
 
@@ -168,9 +167,14 @@ msgHandler sr swc cmts (ep,sm) = do
             mapM_ ((addPeer sr) . ((,) Nothing)) p
             return cmts
 
+        -- | Some one has informed us of a new peer. Check if we have
+        -- it in our list already. 
         r_SNotifyPeer np = do
-            gotNotify np
-            return cmts
+            let s = kaStatus cmts
+                e = M.lookup np s
+            case e of
+                 Nothing  -> return $ cmts {kaStatus = M.insert np (EPUnestablished 0) s}
+                 (Just _) -> return cmts -- Either establishing or connected
 
         r_SRequestPeer = do
             putStrLn "Error: SRequestPeer not supported"
@@ -198,14 +202,3 @@ msgHandler sr swc cmts (ep,sm) = do
                 m = (SNotifyPeer ep)
             atomically $ writeTChan swc (d,m)
 
-        -- | Some one has informed us of a new peer. Check if we have
-        -- it in our list already. If we don't mark its MAC address
-        -- as Nothing in the peer list so that the KeepAlive will send
-        -- a SJoin message instead of a regular SKeepAlive to that 
-        -- peer.
-        gotNotify p = do
-            peers <- getPeers sr
-            let e = find (\(_,x) -> x == p) peers
-            case e of
-                 Nothing -> addPeer sr (Nothing,p)
-                 (Just _) -> putStrLn $ "Already have peer " ++ (show p)
