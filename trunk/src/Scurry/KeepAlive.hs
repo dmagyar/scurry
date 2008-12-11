@@ -18,7 +18,7 @@ import Scurry.Util
 keepAliveThread :: StateRef -> SockWriterChan -> IO ()
 keepAliveThread sr chan = forever $ do
     peers <- getPeers sr
-    mapM messenger peers
+    mapM_ messenger peers
     threadDelay (msToS 10)
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
           messenger (mac,addr) = do
