@@ -113,9 +113,9 @@ static int set_mtu(struct ifreq * ifr, int sock, unsigned int mtu)
 
 void close_tap(union tap_desc * td)
 {
-    if (0 <= td) 
+    if (0 <= td->desc) 
     {
-        close(td);
+        close(td->desc);
     }
 }
 
@@ -141,7 +141,7 @@ int get_mac(struct ifreq * ifr, int sock, struct tap_info * ti)
 }
 
 int read_tap(union tap_desc * td, char * buf, int len)
-{
+{   
     int ret = read(td->desc,buf,len);
     return ret;
 }
