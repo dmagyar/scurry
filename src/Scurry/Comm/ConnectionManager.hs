@@ -51,8 +51,8 @@ data MM = HB
         | CR (EndPoint,ScurryMsg)
 
 -- | Connection Manager Thread
-conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> IO ()
-conMgrThread sr swc cmc = do
+conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> [EndPoint] -> IO ()
+conMgrThread sr swc cmc eps = do
     mv <- newEmptyMVar
     hb <- forkIO $ heartBeatThread mv 
     cr <- forkIO $ chanReadThread mv cmc
@@ -60,7 +60,12 @@ conMgrThread sr swc cmc = do
     labelThread hb "CMT's Heart Beat Thread"
     labelThread cr "CMT's Channel Reader Thread"
 
-    manage mv (CMTState M.empty)
+    -- Impersonate the HeartBeat thread to kick things off immediately
+    -- after 'manage' begins.
+    putMVar mv HB
+
+    -- Add all the tracker end points to the initial CMTState variable.
+    manage mv $ CMTState (M.fromList $ zip eps (repeat freshEPStatus))
 
     where
         -- | cmts is the conMgrThread state--an internal piece
@@ -161,15 +166,20 @@ msgHandler sr swc cmts (ep,sm) = do
                                                  (kaStatus cmts)) }
         
         r_SJoin mac = do
-            addPeer sr ((Just mac),ep)
+            ct <- getCurrentTime
+            addPeer sr (mac,ep)
             joinReply
             joinNotify
-            return cmts
+            return $ cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
 
         r_SJoinReply mac p = do
-            addPeer sr ((Just mac),ep)
-            mapM_ ((addPeer sr) . ((,) Nothing)) p
-            return cmts
+            ct <- getCurrentTime
+            addPeer sr (mac,ep)
+
+            let cmts' = cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
+                cmts'' = cmts' { kaStatus = foldr (\k m -> M.insertWith (\_ o -> o) k freshEPStatus m) (kaStatus cmts') p }
+
+            return cmts''
 
         -- | Some one has informed us of a new peer. Check if we have
         -- it in our list already. 

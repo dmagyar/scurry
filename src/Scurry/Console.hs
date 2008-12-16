@@ -36,7 +36,9 @@ consoleThread sr chan = do
     where goodCmd cmd = case cmd of
                              CmdShutdown           -> exitWith ExitSuccess
                              CmdListPeers          -> (getState sr) >>= (putStrLn . show)
-                             (CmdNewPeer ha pn)    -> addPeer sr (Nothing, (EndPoint ha pn))
+                             {- TODO: Find a way to do this... -}
+                             {- (CmdNewPeer ha pn)    -> addPeer sr (Nothing, (EndPoint ha pn)) -}
+                             CmdNewPeer _ _        -> putStrLn "CmdNewPeer disabled for now..."
                              (CmdRemovePeer ha pn) -> delPeer sr (EndPoint ha pn)
           badCmd err = putStrLn $ "Bad Command: " ++ (show err)
 

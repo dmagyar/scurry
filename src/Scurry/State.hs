@@ -19,7 +19,7 @@ newtype StateRef = StateRef (IORef ScurryState)
 
 -- | The state of the scurry application
 data ScurryState = ScurryState {
-    scurryPeers :: [(Maybe MACAddr,EndPoint)],
+    scurryPeers :: [(MACAddr,EndPoint)],
     scurryEndPoint :: EndPoint,
     scurryMAC :: MACAddr
 } deriving (Show)
@@ -33,10 +33,10 @@ getState (StateRef sr) = readIORef sr
 alterState :: StateRef -> (ScurryState -> ScurryState) -> IO ()
 alterState (StateRef sr) f = atomicModifyIORef sr (\s -> (f s, ()))
 
-getPeers :: StateRef -> IO [(Maybe MACAddr,EndPoint)]
+getPeers :: StateRef -> IO [(MACAddr,EndPoint)]
 getPeers (StateRef sr) = (readIORef sr) >>= (return . scurryPeers)
 
-addPeer :: StateRef -> (Maybe MACAddr, EndPoint) -> IO ()
+addPeer :: StateRef -> (MACAddr, EndPoint) -> IO ()
 addPeer sr (mac,ep) =
     let nubber (_,a) (_,b) = a == b
         ap ps = ps { scurryPeers = nubBy nubber ((mac,ep) : (scurryPeers ps)) }

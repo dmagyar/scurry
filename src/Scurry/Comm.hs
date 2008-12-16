@@ -33,8 +33,8 @@ prepEndPoint ep = do
     bindSocket s (epToSa ep)
     return s
 
-startCom :: TapDesc -> Socket -> ScurryState -> IO ()
-startCom tap sock initSS = do
+startCom :: TapDesc -> Socket -> ScurryState -> [EndPoint] -> IO ()
+startCom tap sock initSS eps = do
     sr <- mkState initSS -- Initial ScurryState
     swchan <- atomically $ newTChan -- SockWriter Channel
     cmchan <- atomically $ newTChan -- Connection Manager Channel
@@ -43,7 +43,7 @@ startCom tap sock initSS = do
     swt <- forkIO $ sockWriteThread sock swchan
     sst <- forkIO $ sockSourceThread tap sock sr swchan cmchan
     kat <- forkIO $ keepAliveThread sr swchan
-    cmt <- forkIO $ conMgrThread sr swchan cmchan
+    cmt <- forkIO $ conMgrThread sr swchan cmchan eps
 
     -- For debugging
     labelThread tst "TAP Source Thread"
