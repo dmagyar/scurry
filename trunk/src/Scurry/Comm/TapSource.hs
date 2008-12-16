@@ -26,7 +26,7 @@ frameSwitch sr chan m = do
     peers <- getPeers sr
     case m of 
       SFrame ((EthernetHeader dst _ _), _) -> 
-        case (lookup (Just dst) peers) of 
+        case (lookup dst peers) of 
           Just p  -> sendMsg p
           Nothing -> mapM_ sendMsg (map (\(_,p) -> p) peers)
         where sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)

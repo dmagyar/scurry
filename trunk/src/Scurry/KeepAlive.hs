@@ -21,8 +21,11 @@ keepAliveThread sr chan = forever $ do
     mapM_ messenger peers
     threadDelay (msToS 10)
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
-          messenger (mac,addr) = do
+          messenger (mac,addr) = sendMsg (DestSingle addr) (SKeepAlive)
+          
+            {-
             case mac of
                  Nothing  -> do mymac <- getMAC sr
                                 sendMsg (DestSingle addr) (SJoin mymac)
                  (Just _) -> sendMsg (DestSingle addr) (SKeepAlive)
+                 -}
