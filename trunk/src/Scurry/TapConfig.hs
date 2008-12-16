@@ -1,4 +1,4 @@
-{-# OPTIONS -ffi #-}
+{-# OPTIONS -XForeignFunctionInterface #-}
 
 module Scurry.TapConfig(
     getTapHandle,
