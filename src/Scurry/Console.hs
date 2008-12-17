@@ -17,14 +17,15 @@ import Scurry.Types.Console
 import Scurry.Types.Threads
 
 import Scurry.State
+import Scurry.Peer
 
 -- Console command interpreter
 
 consoleThread :: StateRef -> SockWriterChan -> IO ()
 consoleThread sr chan = do
-    (ScurryState peers _ mac) <- getState sr
+    (ScurryState {scurryPeers = peers, scurryMyRecord = rec}) <- getState sr
 
-    mapM_ (\(_,x) -> GC.atomically $ writeTChan chan (DestSingle x,SJoin mac)) peers
+    mapM_ (\(PeerRecord { peerEndPoint = ep }) -> GC.atomically $ writeTChan chan (DestSingle ep,SJoin rec)) peers
 
     forever $ do
         ln <- getLine
