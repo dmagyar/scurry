@@ -106,6 +106,8 @@ cleanConnections sr cmts = do
     ct <- getCurrentTime
     ps <- getPeers sr
 
+    putStrLn $ show cmts
+    
     -- 1. Grab all the EndPoints (ps')
     -- 2. Check which of them need to be removed (bad)
     -- 3. Make a map we can run a difference on (bad')
@@ -243,6 +245,8 @@ msgHandler sr swc cmts (ep,sm) = do
             let lan = map (\(EndPoint _ p) -> p) $ filter (\e'@(EndPoint a _) -> (e' /= e) && (addr == a)) $ map peerEndPoint peers
                 dst = DestSingle e
                 wrt m = atomically $ writeTChan swc (dst,m)
+
+            putStrLn $ (show lan)
 
             mapM_ wrt (map SLANSuggest lan)
 
