@@ -79,8 +79,8 @@ conMgrThread sr swc cmc eps = do
                           HB   -> return cmts
                           CR m -> msgHandler sr swc cmts m
             cmts'' <- cleanConnections sr cmts'            
-            manageConnections sr cmts'' swc
-            manage mv cmts'' -- Recursive call
+            cmts''' <- manageConnections sr cmts'' swc
+            manage mv cmts''' -- Recursive call
 
 
 -- | The Heart Beat Thread's purpose is to wake up the Connection
@@ -139,9 +139,12 @@ manageConnections :: StateRef -> CMTState -> SockWriterChan -> IO CMTState
 manageConnections sr cmts swc = do
 
     rec <- getMyRecord sr
+
+    putStrLn "manageConnections"
     
     let l = M.toList (kaStatus cmts)
-        w_chan msg = atomically $ writeTChan swc msg
+        w_chan msg = do putStrLn $ (show msg)
+                        atomically $ writeTChan swc msg
         m t@(ep,s) = case s of
                           -- The peer is not established, send a join request
                           (EPUnestablished x) -> do w_chan $ (DestSingle ep,SJoin (rec { peerEndPoint = ep }))
