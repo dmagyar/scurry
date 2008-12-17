@@ -240,7 +240,7 @@ msgHandler sr swc cmts (ep,sm) = do
         lannerCheck e@(EndPoint addr _) = do
             peers <- getPeers sr
             
-            let lan = map (\(EndPoint _ p) -> p) $ filter (\(EndPoint a _) -> addr == a) $ map peerEndPoint peers
+            let lan = map (\(EndPoint _ p) -> p) $ filter (\e'@(EndPoint a _) -> (e' /= e) && (addr == a)) $ map peerEndPoint peers
                 dst = DestSingle e
                 wrt m = atomically $ writeTChan swc (dst,m)
 
