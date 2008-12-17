@@ -111,9 +111,13 @@ cleanConnections sr cmts = do
     -- 3. Make a map we can run a difference on (bad')
     -- 4. Make a final map with all the good peers (good)
     let ps' = map peerEndPoint ps
-        bad = filter (\(_,v) -> v) $ map (check_p ct) ps'
+        ps'' = map (check_p ct) ps'
+        bad = filter (\(_,v) -> v) ps''
         bad' = M.fromList $ map (\(e,_) -> (e,Nothing)) bad
         good = M.differenceWithKey (\_ _ _ -> Nothing) (kaStatus cmts) bad'
+
+    putStrLn "ps''"
+    putStrLn $ show ps''
 
     mapM_ (delPeer sr . fst) bad
     return $ cmts { kaStatus = good }
