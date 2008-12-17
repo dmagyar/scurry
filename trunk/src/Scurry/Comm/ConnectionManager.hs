@@ -157,10 +157,14 @@ msgHandler sr swc cmts (ep,sm) = do
         SJoinReply rec p -> r_SJoinReply rec p
         SNotifyPeer np   -> r_SNotifyPeer np
         SRequestPeer     -> r_SRequestPeer
+        SLANProbe        -> r_SLANProbe
+        SLANSuggest pn   -> r_SLANSuggest pn
 
         bad -> r_bad bad
 
     where
+        keepOld _ o = o
+
         r_SKeepAlive = do
             ct <- getCurrentTime
             return $ cmts { kaStatus = (M.insert ep
@@ -170,8 +174,9 @@ msgHandler sr swc cmts (ep,sm) = do
         r_SJoin rec = do
             ct <- getCurrentTime
             addPeer sr (rec { peerEndPoint = ep })
-            joinReply
-            joinNotify
+            joinReply -- Send a reply
+            joinNotify -- Notify every one else of this join
+            lannerCheck ep
             return $ cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
 
         r_SJoinReply rec p = do
@@ -179,7 +184,9 @@ msgHandler sr swc cmts (ep,sm) = do
             addPeer sr (rec { peerEndPoint = ep })
 
             let cmts' = cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
-                cmts'' = cmts' { kaStatus = foldr (\k m -> M.insertWith (\_ o -> o) k freshEPStatus m) (kaStatus cmts') p }
+                cmts'' = cmts' { kaStatus = foldr (\k m -> M.insertWith keepOld k freshEPStatus m) (kaStatus cmts') p }
+            
+            lannerCheck ep
 
             return cmts''
 
@@ -191,6 +198,14 @@ msgHandler sr swc cmts (ep,sm) = do
             case e of
                  Nothing  -> return $ cmts {kaStatus = M.insert np freshEPStatus s}
                  (Just _) -> return cmts -- Either establishing or connected
+
+        r_SLANProbe = return $ cmts { kaStatus = M.insertWith keepOld ep freshEPStatus (kaStatus cmts) }
+
+        r_SLANSuggest port = do
+            let bcastAddr = ScurryAddress 0xFFFFFFFF
+                dest = DestSingle (EndPoint bcastAddr port)
+            atomically $ writeTChan swc (dest,SLANProbe)
+            return cmts
 
         r_SRequestPeer = do
             putStrLn "Error: SRequestPeer not supported"
@@ -217,4 +232,17 @@ msgHandler sr swc cmts (ep,sm) = do
             let d = (DestList $ filter (/= ep) $ map peerEndPoint peers)
                 m = (SNotifyPeer ep)
             atomically $ writeTChan swc (d,m)
+
+        -- | Check if the provided address is the same as another in
+        -- our peer list (this most likely means they are on the same
+        -- LAN). If we find one, we send a SLANSuggest with the 
+        -- corresponding port number.
+        lannerCheck e@(EndPoint addr _) = do
+            peers <- getPeers sr
+            
+            let lan = map (\(EndPoint _ p) -> p) $ filter (\(EndPoint a _) -> addr == a) $ map peerEndPoint peers
+                dst = DestSingle e
+                wrt m = atomically $ writeTChan swc (dst,m)
+
+            mapM_ wrt (map SLANSuggest lan)
 

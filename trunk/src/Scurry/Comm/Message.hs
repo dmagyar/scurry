@@ -23,6 +23,8 @@ data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
                | SRequestPeer                     -- | A message to request peer listings on the network.
                | SPing PingID                     -- | A Ping command used for diagnostics.
                | SEcho PingID                     -- | A Echo command used to respond to the Ping command.
+               | SLANProbe                        -- | A message to probe the local LAN for other members.
+               | SLANSuggest ScurryPort           -- | A message to inform a peer that they may share a LAN with another.
                | SUnknown                         -- | An unknown message
     deriving (Show)
 
@@ -33,12 +35,14 @@ instance Binary ScurryMsg where
              case tag of
                   0 -> get >>= (return . SFrame)      -- SFrame
                   1 -> get >>= (return . SJoin)       -- SJoin
-                  2 -> liftM2 SJoinReply get get  -- SJoinReply
+                  2 -> liftM2 SJoinReply get get      -- SJoinReply
                   3 -> return SKeepAlive              -- SKeepAlive
                   4 -> get >>= (return . SNotifyPeer) -- SNotifyPeer
                   5 -> return SRequestPeer            -- SRequestPeer
-                  6 -> get >>= (return . SPing)
-                  7 -> get >>= (return . SEcho)
+                  6 -> get >>= (return . SPing)       -- SPing
+                  7 -> get >>= (return . SEcho)       -- SEcho
+                  8 -> return SLANProbe               -- SLANProbe
+                  9 -> get >>= (return . SLANSuggest) -- SLANSuggest
                   _ -> return SUnknown                -- Unknown Message
     
     put (SFrame fp)      = putWord8 0 >> put fp
@@ -49,6 +53,8 @@ instance Binary ScurryMsg where
     put SRequestPeer     = putWord8 5
     put (SPing pp)       = putWord8 6 >> put pp
     put (SEcho pe)       = putWord8 7 >> put pe
+    put SLANProbe        = putWord8 8
+    put (SLANSuggest ps) = putWord8 9 >> put ps
     put SUnknown         = putWord8 255
 
 
