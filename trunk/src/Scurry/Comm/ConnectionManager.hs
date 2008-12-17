@@ -102,22 +102,15 @@ chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
 cleanConnections :: StateRef -> CMTState -> IO CMTState
 cleanConnections sr cmts = do
     ct <- getCurrentTime
-    ps <- getPeers sr
 
-    putStrLn $ show cmts
-    
     -- 1. Grab all the EndPoints (ps')
     -- 2. Check which of them need to be removed (bad)
     -- 3. Make a map we can run a difference on (bad')
     -- 4. Make a final map with all the good peers (good)
-    let -- ps' = map peerEndPoint ps
-        ps'' = check_cmts ct -- map (check_p ct) ps'
-        bad = filter (\(_,v) -> v) ps''
+    let ps = check_cmts ct
+        bad = filter (\(_,v) -> v) ps
         bad' = M.fromList $ map (\(e,_) -> (e,Nothing)) bad
         good = M.differenceWithKey (\_ _ _ -> Nothing) (kaStatus cmts) bad'
-
-    putStrLn "ps''"
-    putStrLn $ show ps''
 
     mapM_ (delPeer sr . fst) bad
     return $ cmts { kaStatus = good }
@@ -127,10 +120,6 @@ cleanConnections sr cmts = do
                             f (ep,eps) = (ep,hdl_eps eps ct)
                         in  map f cs
 
-        -- | Returns true when the end point needs to be removed
-        check_p ct p = case (M.lookup p (kaStatus cmts)) of
-                            Nothing -> error "PROGRAMMING ERROR: Peer not in CM Map."
-                            Just eps -> (p,hdl_eps eps ct)
         hdl_eps e ct = case e of
                             EPUnestablished ue -> if ue > maxEstablishAttempts
                                                      then True
@@ -146,11 +135,8 @@ manageConnections sr swc cmts = do
 
     rec <- getMyRecord sr
 
-    putStrLn "manageConnections"
-    
     let l = M.toList (kaStatus cmts)
-        w_chan msg = do putStrLn $ (show msg)
-                        atomically $ writeTChan swc msg
+        w_chan msg = atomically $ writeTChan swc msg
         m t@(ep,s) = case s of
                           -- The peer is not established, send a join request
                           (EPUnestablished x) -> do w_chan $ (DestSingle ep,SJoin (rec { peerEndPoint = ep }))
@@ -158,12 +144,7 @@ manageConnections sr swc cmts = do
                           -- The peer is fine, don't do anything
                           _ -> return t
 
-    cs <- mapM m l
-
-    do let x = M.fromList cs
-       putStrLn "Pairs:"
-       putStrLn $ show cs
-       return $ cmts { kaStatus = x }
+    (mapM m l) >>= (return . (\x -> cmts { kaStatus = x }) . M.fromList)
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
