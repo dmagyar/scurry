@@ -110,8 +110,8 @@ cleanConnections sr cmts = do
     -- 2. Check which of them need to be removed (bad)
     -- 3. Make a map we can run a difference on (bad')
     -- 4. Make a final map with all the good peers (good)
-    let ps' = map peerEndPoint ps
-        ps'' = map (check_p ct) ps'
+    let -- ps' = map peerEndPoint ps
+        ps'' = check_cmts ct -- map (check_p ct) ps'
         bad = filter (\(_,v) -> v) ps''
         bad' = M.fromList $ map (\(e,_) -> (e,Nothing)) bad
         good = M.differenceWithKey (\_ _ _ -> Nothing) (kaStatus cmts) bad'
@@ -123,6 +123,10 @@ cleanConnections sr cmts = do
     return $ cmts { kaStatus = good }
 
     where
+        check_cmts ct = let cs = M.toList (kaStatus cmts)
+                            f (ep,eps) = (ep,hdl_eps eps ct)
+                        in  map f cs
+
         -- | Returns true when the end point needs to be removed
         check_p ct p = case (M.lookup p (kaStatus cmts)) of
                             Nothing -> error "PROGRAMMING ERROR: Peer not in CM Map."
