@@ -3,25 +3,31 @@ module Scurry.State (
     StateRef,
     getState,
     alterState,
-    getPeers,
     addPeer,
     delPeer,
+
+    getPeers,
     getEndPoint,
     getMAC,
+    getLocalPort,
+    getVPNAddr,
+    getMyRecord,
+
     mkState,
 ) where
 
 import Data.IORef
 import Data.List
 import Scurry.Types.Network
+import Scurry.Peer
 
 newtype StateRef = StateRef (IORef ScurryState)
 
 -- | The state of the scurry application
 data ScurryState = ScurryState {
-    scurryPeers :: [(MACAddr,EndPoint)],
+    scurryPeers :: [PeerRecord],
     scurryEndPoint :: EndPoint,
-    scurryMAC :: MACAddr
+    scurryMyRecord :: PeerRecord
 } deriving (Show)
 
 mkState :: ScurryState -> IO StateRef
@@ -33,24 +39,36 @@ getState (StateRef sr) = readIORef sr
 alterState :: StateRef -> (ScurryState -> ScurryState) -> IO ()
 alterState (StateRef sr) f = atomicModifyIORef sr (\s -> (f s, ()))
 
-getPeers :: StateRef -> IO [(MACAddr,EndPoint)]
-getPeers (StateRef sr) = (readIORef sr) >>= (return . scurryPeers)
-
-addPeer :: StateRef -> (MACAddr, EndPoint) -> IO ()
-addPeer sr (mac,ep) =
-    let nubber (_,a) (_,b) = a == b
-        ap ps = ps { scurryPeers = nubBy nubber ((mac,ep) : (scurryPeers ps)) }
+addPeer :: StateRef -> PeerRecord -> IO ()
+addPeer sr pr =
+    let nubber (PeerRecord { peerEndPoint = a })
+               (PeerRecord { peerEndPoint = b }) = a == b
+        ap ps = ps { scurryPeers = nubBy nubber (pr : (scurryPeers ps)) }
     in alterState sr ap
 
 delPeer :: StateRef -> EndPoint -> IO ()
 delPeer sr ep = 
-    let f s = filter (\(_,o) -> ep /= o) s 
+    let f = filter (\(PeerRecord { peerEndPoint = o }) -> ep /= o)
         dp s = s { scurryPeers = f (scurryPeers s) }
     in alterState sr dp
 
+getPeers :: StateRef -> IO [PeerRecord]
+getPeers = extract scurryPeers
+
 getEndPoint :: StateRef -> IO EndPoint
-getEndPoint (StateRef sr) = readIORef sr >>= (return . scurryEndPoint)
+getEndPoint = extract scurryEndPoint
 
 getMAC :: StateRef -> IO MACAddr
-getMAC (StateRef sr) = readIORef sr >>= (return . scurryMAC)
+getMAC = extract (peerMAC . scurryMyRecord)
 
+getLocalPort :: StateRef -> IO ScurryPort
+getLocalPort = extract (peerLocalPort . scurryMyRecord)
+
+getVPNAddr :: StateRef -> IO ScurryAddress
+getVPNAddr = extract (peerVPNAddr . scurryMyRecord)
+
+getMyRecord :: StateRef -> IO PeerRecord
+getMyRecord = extract scurryMyRecord
+
+extract :: (ScurryState -> a) -> StateRef -> IO a
+extract e (StateRef sr) = readIORef sr >>= (return . e)

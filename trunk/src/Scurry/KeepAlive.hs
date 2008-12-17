@@ -10,6 +10,7 @@ import Scurry.Comm.Message
 import Scurry.Comm.Util
 
 import Scurry.State
+import Scurry.Peer
 
 import Scurry.Types.Threads
 
@@ -21,7 +22,7 @@ keepAliveThread sr chan = forever $ do
     mapM_ messenger peers
     threadDelay (msToS 10)
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
-          messenger (mac,addr) = sendMsg (DestSingle addr) (SKeepAlive)
+          messenger pr = sendMsg (DestSingle (peerEndPoint pr)) (SKeepAlive)
           
             {-
             case mac of

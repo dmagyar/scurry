@@ -9,20 +9,21 @@ import qualified Data.ByteString as BSS
 import Data.Word
 
 import Scurry.Types.Network
+import Scurry.Peer
 
 type PingID = Word32
 
 -- |These are the messages we get across the network.
 -- They are the management and data protocol.
-data ScurryMsg = SFrame FramePair              -- | An ethernet frame.
-               | SJoin MACAddr                 -- | A network join request.
-               | SJoinReply MACAddr [EndPoint] -- | A network join reply.
-               | SKeepAlive                    -- | A keep alive message. 
-               | SNotifyPeer EndPoint          -- | A message to notify others of a peer.
-               | SRequestPeer                  -- | A message to request peer listings on the network.
-               | SPing PingID                  -- | A Ping command used for diagnostics.
-               | SEcho PingID                  -- | A Echo command used to respond to the Ping command.
-               | SUnknown                      -- | An unknown message
+data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
+               | SJoin PeerRecord                 -- | A network join request.
+               | SJoinReply PeerRecord [EndPoint] -- | A network join reply.
+               | SKeepAlive                       -- | A keep alive message. 
+               | SNotifyPeer EndPoint             -- | A message to notify others of a peer.
+               | SRequestPeer                     -- | A message to request peer listings on the network.
+               | SPing PingID                     -- | A Ping command used for diagnostics.
+               | SEcho PingID                     -- | A Echo command used to respond to the Ping command.
+               | SUnknown                         -- | An unknown message
     deriving (Show)
 
 type FramePair = (EthernetHeader,BSS.ByteString)

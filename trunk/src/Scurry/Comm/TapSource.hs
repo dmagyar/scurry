@@ -7,7 +7,9 @@ import Control.Monad (forever)
 import System.IO
 import qualified Data.ByteString as BSS
 import GHC.Conc
+import Data.List (find)
 
+import Scurry.Peer
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.TapConfig
@@ -24,11 +26,12 @@ tapSourceThread tap sr chan = forever $
 frameSwitch :: StateRef -> SockWriterChan -> ScurryMsg -> IO ()
 frameSwitch sr chan m = do
     peers <- getPeers sr
+
     case m of 
       SFrame ((EthernetHeader dst _ _), _) -> 
-        case (lookup dst peers) of 
-          Just p  -> sendMsg p
-          Nothing -> mapM_ sendMsg (map (\(_,p) -> p) peers)
+        case (find (\pr -> dst == (peerMAC pr)) peers) of 
+          Just p  -> sendMsg (peerEndPoint p)
+          Nothing -> mapM_ sendMsg (map peerEndPoint peers)
         where sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)
       _ -> putStrLn $ "Error: Unexpected frame type from TAP"
     

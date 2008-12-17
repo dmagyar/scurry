@@ -9,6 +9,7 @@ import GHC.Conc
 import Data.Time
 
 import Scurry.State
+import Scurry.Peer
 import Scurry.Util
 import Scurry.Types.Threads
 import Scurry.Types.Network
@@ -109,7 +110,7 @@ cleanConnections sr cmts = do
     -- 2. Check which of them need to be removed (bad)
     -- 3. Make a map we can run a difference on (bad')
     -- 4. Make a final map with all the good peers (good)
-    let ps' = map snd ps
+    let ps' = map peerEndPoint ps
         bad = filter (\(_,v) -> v) $ map (check_p ct) ps'
         bad' = M.fromList $ map (\(e,_) -> (e,Nothing)) bad
         good = M.differenceWithKey (\_ _ _ -> Nothing) (kaStatus cmts) bad'
@@ -134,13 +135,14 @@ cleanConnections sr cmts = do
 --   - Sends out a SJoin message if the peer hasn't been connected yet
 manageConnections :: StateRef -> CMTState -> SockWriterChan -> IO CMTState
 manageConnections sr cmts swc = do
-    -- TODO: Fill in logic
+
+    rec <- getMyRecord sr
     
     let l = M.toList (kaStatus cmts)
-        w msg = atomically $ writeTChan swc msg
+        w_chan msg = atomically $ writeTChan swc msg
         m t@(ep,s) = case s of
                           -- The peer is not established, send a join request
-                          (EPUnestablished x) -> do (getMAC sr) >>= (\y -> w $ (DestSingle ep,SJoin y))
+                          (EPUnestablished x) -> do w_chan $ (DestSingle ep,SJoin (rec { peerEndPoint = ep }))
                                                     return (ep,EPUnestablished (x + 1))
                           -- The peer is fine, don't do anything
                           _ -> return t
@@ -151,8 +153,8 @@ msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> 
 msgHandler sr swc cmts (ep,sm) = do
     case sm of
         SKeepAlive       -> r_SKeepAlive
-        SJoin mac        -> r_SJoin mac
-        SJoinReply mac p -> r_SJoinReply mac p
+        SJoin rec        -> r_SJoin rec
+        SJoinReply rec p -> r_SJoinReply rec p
         SNotifyPeer np   -> r_SNotifyPeer np
         SRequestPeer     -> r_SRequestPeer
 
@@ -165,16 +167,16 @@ msgHandler sr swc cmts (ep,sm) = do
                                                  (EPEstablished ct)
                                                  (kaStatus cmts)) }
         
-        r_SJoin mac = do
+        r_SJoin rec = do
             ct <- getCurrentTime
-            addPeer sr (mac,ep)
+            addPeer sr (rec { peerEndPoint = ep })
             joinReply
             joinNotify
             return $ cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
 
-        r_SJoinReply mac p = do
+        r_SJoinReply rec p = do
             ct <- getCurrentTime
-            addPeer sr (mac,ep)
+            addPeer sr (rec { peerEndPoint = ep })
 
             let cmts' = cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
                 cmts'' = cmts' { kaStatus = foldr (\k m -> M.insertWith (\_ o -> o) k freshEPStatus m) (kaStatus cmts') p }
@@ -203,7 +205,7 @@ msgHandler sr swc cmts (ep,sm) = do
         joinReply = do
             (ScurryState peers _ mymac) <- getState sr        
             let d = (DestSingle ep)
-                e' = map (\(_,p) -> p) peers
+                e' = map peerEndPoint peers
                 p' = filter (/= ep) e'
                 m = SJoinReply mymac p'
             atomically $ writeTChan swc (d,m)
@@ -212,7 +214,7 @@ msgHandler sr swc cmts (ep,sm) = do
         -- has joined us.
         joinNotify = do
             peers <- getPeers sr
-            let d = (DestList $ filter (/= ep) $ map (\(_,x) -> x) peers)
+            let d = (DestList $ filter (/= ep) $ map peerEndPoint peers)
                 m = (SNotifyPeer ep)
             atomically $ writeTChan swc (d,m)
 
