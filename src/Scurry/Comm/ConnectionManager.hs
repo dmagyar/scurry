@@ -127,7 +127,7 @@ cleanConnections sr cmts = do
                             EPUnestablished ue -> if ue > maxEstablishAttempts
                                                      then True
                                                      else False
-                            EPEstablished   es -> if (es `diffUTCTime` ct) > staleConnection
+                            EPEstablished   es -> if (ct `diffUTCTime` es) > staleConnection
                                                      then True
                                                      else False
 
