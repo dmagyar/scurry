@@ -8,7 +8,7 @@ module Scurry.Comm(
 
 import Control.Concurrent.STM.TChan
 import GHC.Conc
-import Network.Socket (Socket(..), Family(..), socket, SocketType(..), defaultProtocol, bindSocket)
+import Network.Socket (Socket(..), Family(..), socket, SocketType(..), defaultProtocol, bindSocket, setSocketOption, SocketOption(Broadcast))
 import System.IO
 
 import Scurry.Comm.Message
@@ -31,6 +31,9 @@ prepEndPoint :: EndPoint -> IO Socket
 prepEndPoint ep = do
     s <- socket AF_INET Datagram defaultProtocol
     bindSocket s (epToSa ep)
+
+    -- Set the broadcast option for IP packets on the socket
+    setSocketOption s Broadcast 4
     return s
 
 startCom :: TapDesc -> Socket -> ScurryState -> [EndPoint] -> IO ()
