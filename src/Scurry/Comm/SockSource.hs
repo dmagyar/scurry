@@ -43,6 +43,8 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
          SJoinReply _ _ -> conMgrFwd
          SNotifyPeer _  -> conMgrFwd
          SRequestPeer   -> conMgrFwd
+         SLANProbe      -> conMgrFwd
+         SLANSuggest _  -> conMgrFwd
          SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
          SEcho eid      -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
          SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
