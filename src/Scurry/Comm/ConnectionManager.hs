@@ -78,10 +78,8 @@ conMgrThread sr swc cmc eps = do
             cmts' <- case mv' of
                           HB   -> return cmts
                           CR m -> msgHandler sr swc cmts m
-            cmts'' <- cleanConnections sr cmts'            
-            cmts''' <- manageConnections sr cmts'' swc
-            manage mv cmts''' -- Recursive call
 
+            (cleanConnections sr cmts') >>= (manageConnections sr swc) >>= (manage mv)
 
 -- | The Heart Beat Thread's purpose is to wake up the Connection
 -- Manager and have it check everything for sanity and make sure
@@ -135,8 +133,8 @@ cleanConnections sr cmts = do
 
 -- | Connection Manager:
 --   - Sends out a SJoin message if the peer hasn't been connected yet
-manageConnections :: StateRef -> CMTState -> SockWriterChan -> IO CMTState
-manageConnections sr cmts swc = do
+manageConnections :: StateRef -> SockWriterChan -> CMTState -> IO CMTState
+manageConnections sr swc cmts = do
 
     rec <- getMyRecord sr
 
@@ -152,7 +150,12 @@ manageConnections sr cmts swc = do
                           -- The peer is fine, don't do anything
                           _ -> return t
 
-    (mapM m l) >>= (return . (\x -> (cmts { kaStatus = x })) . M.fromList)
+    cs <- mapM m l
+
+    do let x = M.fromList cs
+       putStrLn "Pairs:"
+       putStrLn $ show cs
+       return $ cmts { kaStatus = x }
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
