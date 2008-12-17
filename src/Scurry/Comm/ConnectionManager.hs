@@ -241,7 +241,5 @@ msgHandler sr swc cmts (ep,sm) = do
                 dst = DestSingle e
                 wrt m = atomically $ writeTChan swc (dst,m)
 
-            putStrLn $ (show lan)
-
             mapM_ wrt (map SLANSuggest lan)
 
