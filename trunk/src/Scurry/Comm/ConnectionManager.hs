@@ -51,6 +51,10 @@ freshEPStatus = EPUnestablished 0
 data MM = HB
         | CR (EndPoint,ScurryMsg)
 
+-- | It's like forever, but it uses >>= (bind) instead of >>
+foreverB :: (Monad m) => (a -> m a) -> a -> m b
+foreverB f start = f start >>= foreverB f
+
 -- | Connection Manager Thread
 conMgrThread :: StateRef -> SockWriterChan -> ConMgrChan -> [EndPoint] -> IO ()
 conMgrThread sr swc cmc eps = do
@@ -66,20 +70,20 @@ conMgrThread sr swc cmc eps = do
     putMVar mv HB
 
     -- Add all the tracker end points to the initial CMTState variable.
-    manage mv $ CMTState (M.fromList $ zip eps (repeat freshEPStatus))
+    foreverB (manage mv) (CMTState (M.fromList $ zip eps (repeat freshEPStatus)))
 
     where
         -- | cmts is the conMgrThread state--an internal piece
         -- of state used to keep track of things unique to the
         -- manage function below.
-        manage :: MVar MM -> CMTState -> IO ()
+
+        manage :: MVar MM -> CMTState -> IO CMTState
         manage mv cmts = do
             mv' <- takeMVar mv
             cmts' <- case mv' of
                           HB   -> return cmts
                           CR m -> msgHandler sr swc cmts m
-
-            (cleanConnections sr cmts') >>= (manageConnections sr swc) >>= (manage mv)
+            (cleanConnections sr cmts') >>= (manageConnections sr swc) >>= return
 
 -- | The Heart Beat Thread's purpose is to wake up the Connection
 -- Manager and have it check everything for sanity and make sure
