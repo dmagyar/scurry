@@ -20,7 +20,7 @@ keepAliveThread :: StateRef -> SockWriterChan -> IO ()
 keepAliveThread sr chan = forever $ do
     peers <- getPeers sr
     mapM_ messenger peers
-    threadDelay (msToS 10)
+    threadDelay (sToMs 10)
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
           messenger pr = sendMsg (DestSingle (peerEndPoint pr)) (SKeepAlive)
           
