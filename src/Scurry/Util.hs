@@ -2,7 +2,7 @@ module Scurry.Util(
     catch_to_maybe,
     inet_addr,
     inet_ntoa,
-    msToS,
+    sToMs,
 ) where
 
 import qualified Network.Socket as INET (inet_addr,inet_ntoa)
@@ -22,6 +22,7 @@ inet_addr a = unsafePerformIO $ catch_to_maybe (\v -> (INET.inet_addr v) >>= (re
 inet_ntoa :: ScurryAddress -> Maybe String
 inet_ntoa (ScurryAddress a) = unsafePerformIO $ catch_to_maybe INET.inet_ntoa a
 
-msToS :: Int -> Int
-msToS = (* 1000000)
+-- | Seconds to milliseconds
+sToMs :: Int -> Int
+sToMs = (* 1000000)
 

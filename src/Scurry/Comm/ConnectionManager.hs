@@ -35,6 +35,9 @@ maxEstablishAttempts = 5
 staleConnection :: NominalDiffTime
 staleConnection = 60 -- seconds
 
+heartBeatInterval :: Int
+heartBeatInterval = (sToMs 5)
+
 -- | A status type that determines the state specific
 -- peers are in.
 --  - EPUnestablished holds the number of attempts to connect
@@ -90,7 +93,7 @@ conMgrThread sr swc cmc eps = do
 -- any stale connections are cleaned out.
 heartBeatThread :: MVar MM -> IO ()
 heartBeatThread mv = forever $ do
-    threadDelay (msToS 5)
+    threadDelay heartBeatInterval 
     putMVar mv HB
 
 -- | The Channel Reader Thread's purpose is to pull an item off
