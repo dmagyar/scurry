@@ -1,4 +1,5 @@
 {-# OPTIONS -XForeignFunctionInterface #-}
+{-# LANGUAGE CPP #-}
 
 module Network.Util (
     htonl,
@@ -9,8 +10,8 @@ module Network.Util (
 
 import Data.Word
 
-foreign import ccall unsafe "htonl" htonl :: Word32 -> Word32 
-foreign import ccall unsafe "htons" htons :: Word16 -> Word16 
-foreign import ccall unsafe "ntohl" ntohl :: Word32 -> Word32
-foreign import ccall unsafe "ntohs" ntohs :: Word16 -> Word16
+foreign import CALLCONV unsafe "htonl" htonl :: Word32 -> Word32 
+foreign import CALLCONV unsafe "htons" htons :: Word16 -> Word16 
+foreign import CALLCONV unsafe "ntohl" ntohl :: Word32 -> Word32
+foreign import CALLCONV unsafe "ntohs" ntohs :: Word16 -> Word16
 
