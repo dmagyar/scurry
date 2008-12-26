@@ -1,3 +1,5 @@
+{-# OPTIONS -XGeneralizedNewtypeDeriving #-}
+
 module Scurry.Types.Network (
     MACAddr(..),
     EthernetHeader(..),
@@ -6,6 +8,7 @@ module Scurry.Types.Network (
     EthType,
     EndPoint(..),
     ScurryAddress(..),
+    ScurryMask,
     ScurryPort(..),
     epToSa,
     saToEp,
@@ -14,6 +17,7 @@ module Scurry.Types.Network (
 import Data.Binary
 import Numeric
 import Network.Socket (inet_ntoa,HostAddress,PortNumber(..),SockAddr(..))
+import Network.Util
 import Control.Monad (liftM,liftM2)
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -53,9 +57,17 @@ instance Binary EthernetHeader where
     put (EthernetHeader d s t) = do
         { put d ; put s ; put t }
 
+type ScurryMask = ScurryAddress
 
-newtype ScurryAddress = ScurryAddress HostAddress
-    deriving (Eq,Ord)
+newtype ScurryAddress = ScurryAddress {
+    scurryAddr :: HostAddress
+} deriving (Eq,Ord)
+
+instance Enum ScurryAddress where
+    succ (ScurryAddress a) = ScurryAddress $ htonl $ (ntohl a) + 1
+    pred (ScurryAddress a) = ScurryAddress $ htonl $ (ntohl a) - 1
+    toEnum v = ScurryAddress $ htonl $ fromIntegral v
+    fromEnum (ScurryAddress a) = fromEnum (ntohl a)
 
 instance Show ScurryAddress where
     -- We use unsafePerformIO here to avoid referencing the
