@@ -31,7 +31,7 @@ data ScurryState = ScurryState {
 } deriving (Show)
 
 mkState :: ScurryState -> IO StateRef
-mkState ss = (newIORef ss) >>= (return . StateRef)
+mkState ss = newIORef ss >>= (return . StateRef)
 
 getState :: StateRef -> IO ScurryState
 getState (StateRef sr) = readIORef sr
@@ -43,7 +43,7 @@ addPeer :: StateRef -> PeerRecord -> IO ()
 addPeer sr pr =
     let nubber (PeerRecord { peerEndPoint = a })
                (PeerRecord { peerEndPoint = b }) = a == b
-        ap ps = ps { scurryPeers = nubBy nubber (pr : (scurryPeers ps)) }
+        ap ps = ps { scurryPeers = nubBy nubber (pr : scurryPeers ps) }
     in alterState sr ap
 
 delPeer :: StateRef -> EndPoint -> IO ()

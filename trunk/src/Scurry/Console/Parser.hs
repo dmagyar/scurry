@@ -12,11 +12,11 @@ parseConsole :: String -> Either ParseError ConsoleCmd
 parseConsole = parse consoleCmd "Console"
 
 consoleCmd :: Parser ConsoleCmd
-consoleCmd = (try cmdShutdown) <|>
-             (try cmdListPeers) <|>
-             (try cmdNewPeer) <|>
-             (try cmdRemovePeer) <|>
-             (fail "Command not recognized")
+consoleCmd = try cmdShutdown   <|>
+             try cmdListPeers  <|>
+             try cmdNewPeer    <|>
+             try cmdRemovePeer <|>
+             fail "Command not recognized"
 
 cmdShutdown :: Parser ConsoleCmd
 cmdShutdown = do
@@ -52,7 +52,7 @@ ip_port_pair = do
     let ip'   = inet_addr ip
         port' = (read port :: Integer)
 
-    if (port' > 65535 || port' < 0)
+    if port' > 65535 || port' < 0
        then parserFail "Not a valid port."
        else case ip' of
                  (Just ip'') -> return (ip'',ScurryPort $ fromIntegral port')

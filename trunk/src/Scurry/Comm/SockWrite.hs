@@ -16,14 +16,13 @@ import Scurry.Types.Network
 import Scurry.Types.Threads
 
 sockWriteThread :: Socket -> SockWriterChan -> IO ()
-sockWriteThread sock chan = forever $
-    sockWriter sock chan
+sockWriteThread sock = forever . sockWriter sock
 
 sockWriter :: Socket -> SockWriterChan -> IO ()
 sockWriter sock chan = do
     (dst,msg) <- atomically $ readTChan chan
     
-    let sendToAddr = (sendTo sock (BSS.concat . BS.toChunks $ encode msg)) . epToSa
+    let sendToAddr = sendTo sock (BSS.concat . BS.toChunks $ encode msg) . epToSa
 
     case dst of
          DestSingle addr -> sendToAddr addr >> return ()

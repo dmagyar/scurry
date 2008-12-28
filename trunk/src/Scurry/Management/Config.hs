@@ -28,7 +28,7 @@ type DevMask = ScurryAddress
 
 load_scurry_config_file :: FilePath -> IO (Maybe Scurry)
 load_scurry_config_file file = do f <- readFile file
-                                  return $ case (decode f) of
+                                  return $ case decode f of
                                                 Ok f'   -> Just f'
                                                 Error _ -> Nothing
 

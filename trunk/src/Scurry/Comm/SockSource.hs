@@ -46,10 +46,10 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
          SLANProbe      -> conMgrFwd
          SLANSuggest _  -> conMgrFwd
          SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
-         SEcho eid      -> putStrLn $ "Echo: " ++ (show eid) ++ (show $ srcAddr)
+         SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ (show $ srcAddr)
          SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
     where conMgrFwd = writeChan cmchan srcAddr msg
-          sckWrtWrite d m = writeChan swchan d m
+          sckWrtWrite = writeChan swchan
           writeChan c d m = atomically $ writeTChan c (d,m)
 
 sockDecode :: BSS.ByteString -> ScurryMsg
