@@ -22,7 +22,7 @@ keepAliveThread sr chan = forever $ do
     mapM_ messenger peers
     threadDelay (sToMs 10)
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
-          messenger pr = sendMsg (DestSingle (peerEndPoint pr)) (SKeepAlive)
+          messenger pr = sendMsg (DestSingle (peerEndPoint pr)) SKeepAlive
           
             {-
             case mac of

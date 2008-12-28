@@ -15,7 +15,7 @@ scurry_err = Error "Not a Scurry Peer JSON object."
 
 load_tracker_file :: FilePath -> IO (Maybe Tracker)
 load_tracker_file path = do f <- readFile path
-                            return $ case (decode f) of
+                            return $ case decode f of
                                           Ok f'   -> Just f'
                                           Error _ -> Nothing
 

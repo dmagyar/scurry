@@ -29,7 +29,7 @@ getTapHandle ip_str mask_str = do
     open_tap (fromJust $ inet_addr ip_str) (fromJust $ inet_addr mask_str)
 
 closeTapHandle :: TapDesc -> IO ()
-closeTapHandle tap = close_tap_ffi (unsafeForeignPtrToPtr tap)
+closeTapHandle = close_tap_ffi . unsafeForeignPtrToPtr
 
 open_tap :: ScurryAddress -> ScurryAddress -> IO (Either CInt (TapDesc,MACAddr))
 open_tap (ScurryAddress addr) (ScurryAddress mask) = do
@@ -42,7 +42,7 @@ open_tap (ScurryAddress addr) (ScurryAddress mask) = do
     (TapInfo _ mac) <- peek ti'
     free ti'      -- FREE   /
 
-    if (res < 0)
+    if res < 0
         then return (Left res)
         else return $ Right (td',mac)
 

@@ -29,12 +29,12 @@ frameSwitch sr chan m = do
 
     case m of 
       SFrame ((EthernetHeader dst _ _), _) -> 
-        case (find (\pr -> dst == (peerMAC pr)) peers) of 
+        case find (\pr -> dst == peerMAC pr) peers of 
           Just p  -> sendMsg (peerEndPoint p)
           Nothing -> mapM_ sendMsg (map peerEndPoint peers)
         where sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)
       _ -> putStrLn $ "Error: Unexpected frame type from TAP"
     
 tapDecode :: BSS.ByteString -> ScurryMsg
-tapDecode bs = SFrame $ bsToEthernetTuple bs
+tapDecode = SFrame . bsToEthernetTuple
 

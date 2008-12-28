@@ -29,7 +29,8 @@ catch_to_maybe :: (t -> IO a) -> t -> IO (Maybe a)
 catch_to_maybe f a = catch (f a >>= (return . Just)) (\_ -> return Nothing)
 
 inet_addr :: String -> Maybe ScurryAddress
-inet_addr a = unsafePerformIO $ catch_to_maybe (\v -> (INET.inet_addr v) >>= (return . ScurryAddress)) a
+inet_addr = unsafePerformIO .
+              catch_to_maybe (\v -> INET.inet_addr v >>= (return . ScurryAddress))
 
 inet_ntoa :: ScurryAddress -> Maybe String
 inet_ntoa (ScurryAddress a) = unsafePerformIO $ catch_to_maybe INET.inet_ntoa a
@@ -42,11 +43,11 @@ genRandAddr :: [ScurryAddress] -> ScurryAddress -> ScurryAddress -> IO ScurryAdd
 genRandAddr without mask net = do
     ct <- getCurrentTime
 
-    let seed = 1000000000 * (diffUTCTime ct (UTCTime (ModifiedJulianDay 0) 0))
+    let seed = 1000000000 * diffUTCTime ct (UTCTime (ModifiedJulianDay 0) 0)
         gen = mkStdGen $ round seed
 
     let (r,_) = randomR (0,100) gen
-        a = (!! r) $ filter (not . (flip elem without)) $ enumAllInMask mask net
+        a = (!! r) $ filter (not . flip elem without) $ enumAllInMask mask net
 
     return a
     
@@ -55,7 +56,7 @@ genRandAddr without mask net = do
 
 isInMask :: ScurryMask -> ScurryAddress -> ScurryAddress -> Bool
 isInMask mask net addr = let m = scurryAddr mask
-                             n = m .&. (scurryAddr net)
+                             n = m .&. scurryAddr net
                              a = scurryAddr addr
                          in n == a
 enumAllInMask :: ScurryMask -> ScurryAddress -> [ScurryAddress]

@@ -86,7 +86,7 @@ conMgrThread sr swc cmc eps = do
             cmts' <- case mv' of
                           HB   -> return cmts
                           CR m -> msgHandler sr swc cmts m
-            (cleanConnections sr cmts') >>= (manageConnections sr swc) >>= return
+            cleanConnections sr cmts' >>= manageConnections sr swc >>= return
 
 -- | The Heart Beat Thread's purpose is to wake up the Connection
 -- Manager and have it check everything for sanity and make sure
@@ -101,7 +101,7 @@ heartBeatThread mv = forever $ do
 -- is ready for processing.
 chanReadThread :: MVar MM -> ConMgrChan -> IO ()
 chanReadThread mv cmc = forever $ let rd = (atomically $ readTChan cmc)
-                                      pt = (putMVar mv) . CR
+                                      pt = putMVar mv . CR
                                   in rd >>= pt
 -- | Connection Cleaner:
 --   - Make sure that the connections are current (not stale)
@@ -128,12 +128,8 @@ cleanConnections sr cmts = do
                         in  map f cs
 
         hdl_eps e ct = case e of
-                            EPUnestablished ue -> if ue > maxEstablishAttempts
-                                                     then True
-                                                     else False
-                            EPEstablished   es -> if (ct `diffUTCTime` es) > staleConnection
-                                                     then True
-                                                     else False
+                            EPUnestablished ue -> ue > maxEstablishAttempts
+                            EPEstablished   es -> (ct `diffUTCTime` es) > staleConnection
 
 -- | Connection Manager:
 --   - Sends out a SJoin message if the peer hasn't been connected yet
@@ -143,7 +139,7 @@ manageConnections sr swc cmts = do
     rec <- getMyRecord sr
 
     let l = M.toList (kaStatus cmts)
-        w_chan msg = atomically $ writeTChan swc msg
+        w_chan = atomically . writeTChan swc 
         m t@(ep,s) = case s of
                           -- The peer is not established, send a join request
                           (EPUnestablished x) -> do w_chan $ (DestSingle ep,SJoin (rec { peerEndPoint = ep }))
@@ -151,7 +147,7 @@ manageConnections sr swc cmts = do
                           -- The peer is fine, don't do anything
                           _ -> return t
 
-    (mapM m l) >>= (return . (\x -> cmts { kaStatus = x }) . M.fromList)
+    mapM m l >>= (return . (\x -> cmts { kaStatus = x }) . M.fromList)
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) = do
@@ -215,7 +211,7 @@ msgHandler sr swc cmts (ep,sm) = do
             putStrLn "Error: SRequestPeer not supported"
             return cmts
 
-        r_bad bad = error $ "Software Design Error: msgHandler can't use " ++ (show bad)
+        r_bad bad = error $ "Software Design Error: msgHandler can't use " ++ show bad
 
         -- | When we get a SJoin message, we add the new peer to our
         -- own peer list (if we don't have them recorded yet), inform

@@ -41,7 +41,7 @@ main = withSocketsDo $ do
     tap <- getTapHandle (frmJst (inet_ntoa tapIp)) (frmJst (inet_ntoa tapMask))
 
     case tap of
-        (Left t)        -> putStrLn $ "Failed: " ++ (show t)
+        (Left t)        -> putStrLn $ "Failed: " ++ show t
         (Right (t,mac)) -> doWork t mySockAddr (mkMyState mac) trackerEndPoints
 
     where

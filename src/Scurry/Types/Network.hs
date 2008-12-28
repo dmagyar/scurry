@@ -64,9 +64,9 @@ newtype ScurryAddress = ScurryAddress {
 } deriving (Eq,Ord)
 
 instance Enum ScurryAddress where
-    succ (ScurryAddress a) = ScurryAddress $ htonl $ (ntohl a) + 1
-    pred (ScurryAddress a) = ScurryAddress $ htonl $ (ntohl a) - 1
-    toEnum v = ScurryAddress $ htonl $ fromIntegral v
+    succ (ScurryAddress a) = ScurryAddress $ htonl $ ntohl a + 1
+    pred (ScurryAddress a) = ScurryAddress $ htonl $ ntohl a - 1
+    toEnum = ScurryAddress . htonl . fromIntegral
     fromEnum (ScurryAddress a) = fromEnum (ntohl a)
 
 instance Show ScurryAddress where
