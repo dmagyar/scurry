@@ -25,6 +25,9 @@ data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
                | SEcho PingID                     -- | A Echo command used to respond to the Ping command.
                | SLANProbe                        -- | A message to probe the local LAN for other members.
                | SLANSuggest ScurryPort           -- | A message to inform a peer that they may share a LAN with another.
+               | SAddressRequest                  -- | A message to request an available VPN address
+               | SAddressPropose ScurryAddress    -- | A message to suggest an address to a peer
+               | SAddressSelect ScurryAddress     -- | A message to inform every one we're using an address 
                | SUnknown                         -- | An unknown message
     deriving (Show)
 
@@ -33,28 +36,34 @@ type FramePair = (EthernetHeader,BSS.ByteString)
 instance Binary ScurryMsg where
     get = do tag <- getWord8
              case tag of
-                  0 -> get >>= (return . SFrame)      -- SFrame
-                  1 -> get >>= (return . SJoin)       -- SJoin
-                  2 -> liftM2 SJoinReply get get      -- SJoinReply
-                  3 -> return SKeepAlive              -- SKeepAlive
-                  4 -> get >>= (return . SNotifyPeer) -- SNotifyPeer
-                  5 -> return SRequestPeer            -- SRequestPeer
-                  6 -> get >>= (return . SPing)       -- SPing
-                  7 -> get >>= (return . SEcho)       -- SEcho
-                  8 -> return SLANProbe               -- SLANProbe
-                  9 -> get >>= (return . SLANSuggest) -- SLANSuggest
-                  _ -> return SUnknown                -- Unknown Message
+                  0  -> get >>= (return . SFrame)          -- SFrame
+                  1  -> get >>= (return . SJoin)           -- SJoin
+                  2  -> liftM2 SJoinReply get get          -- SJoinReply
+                  3  -> return SKeepAlive                  -- SKeepAlive
+                  4  -> get >>= (return . SNotifyPeer)     -- SNotifyPeer
+                  5  -> return SRequestPeer                -- SRequestPeer
+                  6  -> get >>= (return . SPing)           -- SPing
+                  7  -> get >>= (return . SEcho)           -- SEcho
+                  8  -> return SLANProbe                   -- SLANProbe
+                  9  -> get >>= (return . SLANSuggest)     -- SLANSuggest
+                  10 -> return SAddressRequest             -- SAddressRequest
+                  11 -> get >>= (return . SAddressPropose) -- SAddressPropose
+                  12 -> get >>= (return . SAddressSelect)  -- SAddressSelect
+                  _  -> return SUnknown                    -- Unknown Message
     
-    put (SFrame fp)      = putWord8 0 >> put fp
-    put (SJoin m)        = putWord8 1 >> put m
-    put (SJoinReply m p) = putWord8 2 >> put m >> put p
-    put SKeepAlive       = putWord8 3
-    put (SNotifyPeer p)  = putWord8 4 >> put p
-    put SRequestPeer     = putWord8 5
-    put (SPing pp)       = putWord8 6 >> put pp
-    put (SEcho pe)       = putWord8 7 >> put pe
-    put SLANProbe        = putWord8 8
-    put (SLANSuggest ps) = putWord8 9 >> put ps
-    put SUnknown         = putWord8 255
+    put (SFrame fp)         = putWord8 0 >> put fp
+    put (SJoin m)           = putWord8 1 >> put m
+    put (SJoinReply m p)    = putWord8 2 >> put m >> put p
+    put SKeepAlive          = putWord8 3
+    put (SNotifyPeer p)     = putWord8 4 >> put p
+    put SRequestPeer        = putWord8 5
+    put (SPing pp)          = putWord8 6 >> put pp
+    put (SEcho pe)          = putWord8 7 >> put pe
+    put SLANProbe           = putWord8 8
+    put (SLANSuggest ps)    = putWord8 9 >> put ps
+    put SAddressRequest     = putWord8 10
+    put (SAddressPropose p) = putWord8 11 >> put p
+    put (SAddressSelect p)  = putWord8 12 >> put p
+    put SUnknown            = putWord8 255
 
 
