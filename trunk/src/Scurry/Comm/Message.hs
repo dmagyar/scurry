@@ -25,9 +25,10 @@ data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
                | SEcho PingID                     -- | A Echo command used to respond to the Ping command.
                | SLANProbe                        -- | A message to probe the local LAN for other members.
                | SLANSuggest ScurryPort           -- | A message to inform a peer that they may share a LAN with another.
-               | SAddressRequest                  -- | A message to request an available VPN address
-               | SAddressPropose ScurryAddress    -- | A message to suggest an address to a peer
-               | SAddressSelect ScurryAddress     -- | A message to inform every one we're using an address 
+               | SAddrRequest                     -- | A message to request an available VPN address
+               | SAddrReject                      -- | A message to reject the address a peer has chosen
+               | SAddrPropose ScurryAddress       -- | A message to suggest an address to a peer
+               | SAddrSelect ScurryAddress        -- | A message to inform every one we're using an address 
                | SUnknown                         -- | An unknown message
     deriving (Show)
 
@@ -46,9 +47,10 @@ instance Binary ScurryMsg where
                   7  -> get >>= (return . SEcho)           -- SEcho
                   8  -> return SLANProbe                   -- SLANProbe
                   9  -> get >>= (return . SLANSuggest)     -- SLANSuggest
-                  10 -> return SAddressRequest             -- SAddressRequest
-                  11 -> get >>= (return . SAddressPropose) -- SAddressPropose
-                  12 -> get >>= (return . SAddressSelect)  -- SAddressSelect
+                  10 -> return SAddrRequest                -- SAddrRequest
+                  11 -> return SAddrReject                 -- SAddrReject
+                  12 -> get >>= (return . SAddrPropose)    -- SAddrPropose
+                  13 -> get >>= (return . SAddrSelect)     -- SAddrSelect
                   _  -> return SUnknown                    -- Unknown Message
     
     put (SFrame fp)         = putWord8 0 >> put fp
@@ -61,9 +63,10 @@ instance Binary ScurryMsg where
     put (SEcho pe)          = putWord8 7 >> put pe
     put SLANProbe           = putWord8 8
     put (SLANSuggest ps)    = putWord8 9 >> put ps
-    put SAddressRequest     = putWord8 10
-    put (SAddressPropose p) = putWord8 11 >> put p
-    put (SAddressSelect p)  = putWord8 12 >> put p
+    put SAddrRequest        = putWord8 10
+    put SAddrReject         = putWord8 11
+    put (SAddrPropose p)    = putWord8 12 >> put p
+    put (SAddrSelect p)     = putWord8 13 >> put p
     put SUnknown            = putWord8 255
 
 

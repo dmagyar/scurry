@@ -38,17 +38,21 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
 
     case msg of
          SFrame (_,frame) -> write_tap tap frame
-         SKeepAlive     -> conMgrFwd
-         SJoin _        -> conMgrFwd
-         SJoinReply _ _ -> conMgrFwd
-         SNotifyPeer _  -> conMgrFwd
-         SRequestPeer   -> conMgrFwd
-         SLANProbe      -> conMgrFwd
-         SLANSuggest _  -> conMgrFwd
+         SKeepAlive     -> fwd
+         SJoin _        -> fwd
+         SJoinReply _ _ -> fwd
+         SNotifyPeer _  -> fwd
+         SRequestPeer   -> fwd
+         SLANProbe      -> fwd
+         SLANSuggest _  -> fwd
          SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
          SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ (show $ srcAddr)
+         SAddrRequest   -> fwd
+         SAddrReject    -> fwd
+         SAddrPropose _ -> fwd
+         SAddrSelect _  -> fwd
          SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
-    where conMgrFwd = writeChan cmchan srcAddr msg
+    where fwd = writeChan cmchan srcAddr msg
           sckWrtWrite = writeChan swchan
           writeChan c d m = atomically $ writeTChan c (d,m)
 
