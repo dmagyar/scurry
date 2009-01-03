@@ -159,6 +159,10 @@ msgHandler sr swc cmts (ep,sm) = do
         SRequestPeer     -> r_SRequestPeer
         SLANProbe        -> r_SLANProbe
         SLANSuggest pn   -> r_SLANSuggest pn
+        SAddrRequest     -> error "Not implemented"
+        SAddrReject      -> error "Not implemented"
+        SAddrPropose a   -> error "Not implemented"
+        SAddrSelect a    -> error "Not implemented"
 
         bad -> r_bad bad
 
