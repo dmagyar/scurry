@@ -188,7 +188,9 @@ msgHandler sr swc cmts (ep,sm) = do
             addPeer sr (rec { peerEndPoint = ep })
 
             let cmts' = cmts { kaStatus = M.insert ep (EPEstablished ct) (kaStatus cmts) }
-                cmts'' = cmts' { kaStatus = foldr (\k m -> M.insertWith keepOld k freshEPStatus m) (kaStatus cmts') p }
+                cmts'' = cmts' {
+                    kaStatus = foldr (\k m -> M.insertWith keepOld k freshEPStatus m) (kaStatus cmts') p
+                }
             
             lannerCheck ep
 
