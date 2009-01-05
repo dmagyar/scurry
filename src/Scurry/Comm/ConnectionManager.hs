@@ -159,7 +159,7 @@ msgHandler sr swc cmts (ep,sm) = do
         SRequestPeer     -> r_SRequestPeer
         SLANProbe        -> r_SLANProbe
         SLANSuggest pn   -> r_SLANSuggest pn
-        SAddrRequest     -> error "Not implemented"
+        SAddrRequest     -> r_SAddrRequest
         SAddrReject      -> error "Not implemented"
         SAddrPropose a   -> error "Not implemented"
         SAddrSelect a    -> error "Not implemented"
@@ -168,6 +168,30 @@ msgHandler sr swc cmts (ep,sm) = do
 
     where
         keepOld _ o = o
+
+        r_SAddrRequest = do
+            peers <- getPeers sr
+            myRec <- getMyRecord sr
+            mask  <- getVpnMask sr
+
+            let peerAddrs = map peerVPNAddr peers
+                dest = DestSingle ep
+            
+            addr <- genRandAddr peerAddrs (peerVPNAddr myRec) mask 
+
+            putStrLn $ "Suggesting address " ++ show addr ++ " to " ++ show ep
+
+            atomically $ writeTChan swc (dest,SAddrPropose addr)
+
+            return cmts
+
+            -- genRandAddr :: [ScurryAddress] -> ScurryAddress -> ScurryAddress -> IO ScurryAddress
+
+        {-
+        r_SAddrReject = do
+        r_SAddrPropose a = do
+        r_SAddrSelect a = do
+        -}
 
         r_SKeepAlive = do
             ct <- getCurrentTime
@@ -224,11 +248,11 @@ msgHandler sr swc cmts (ep,sm) = do
         -- them of our MAC address and the peers we know about, and
         -- then tell every one else we know about the new peer.
         joinReply = do
-            (ScurryState peers _ mymac) <- getState sr        
+            (ScurryState {scurryPeers = peers, scurryMyRecord = myrec}) <- getState sr        
             let d = (DestSingle ep)
                 e' = map peerEndPoint peers
                 p' = filter (/= ep) e'
-                m = SJoinReply mymac p'
+                m = SJoinReply myrec p'
             atomically $ writeTChan swc (d,m)
 
         -- | This alerts the other peers on our network that some one
