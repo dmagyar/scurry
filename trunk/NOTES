@@ -1,4 +1,1 @@
-Currently, no Windows support. Check out OpenVPN's tun.c file from
-line 1617 to 3416 for some idea how to do this. They do a lot of 
-extra work to allow TUN devices (which I don't care about), so this
-will probably be easier to get through.
+No notes.
