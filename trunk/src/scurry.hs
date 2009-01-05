@@ -30,6 +30,7 @@ main = withSocketsDo $ do
         mkMyState mac = ScurryState {
             scurryPeers = [],
             scurryEndPoint = mySockAddr,
+            scurryVpnMask = tapMask,
             scurryMyRecord = PeerRecord {
                 peerMAC = mac,
                 peerEndPoint = EndPoint (ScurryAddress 0) (ScurryPort 0),
