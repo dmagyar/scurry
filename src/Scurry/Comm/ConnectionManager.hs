@@ -161,7 +161,7 @@ msgHandler sr swc cmts (ep,sm) = do
         SLANSuggest pn   -> r_SLANSuggest pn
         SAddrRequest     -> r_SAddrRequest
         -- SAddrReject      -> error "Not implemented"
-        SAddrPropose _   -> putStrLn "Got a proposal. Why?" >> return cmts
+        SAddrPropose _ _ -> putStrLn "Got a proposal. Why?" >> return cmts
         -- SAddrSelect a    -> error "Not implemented"
 
         bad -> r_bad bad
@@ -181,7 +181,7 @@ msgHandler sr swc cmts (ep,sm) = do
 
             putStrLn $ "Suggesting address " ++ show addr ++ " to " ++ show ep
 
-            atomically $ writeTChan swc (dest,SAddrPropose addr)
+            atomically $ writeTChan swc (dest,SAddrPropose addr mask)
 
             return cmts
 
