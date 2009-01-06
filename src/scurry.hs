@@ -13,7 +13,7 @@ import Scurry.Management.Config
 import Scurry.Management.Tracker
 import Scurry.State
 import Scurry.Types.Network
-import Scurry.Types.TAP
+-- import Scurry.Types.TAP
 
 main :: IO ()
 main = withSocketsDo $ do 
@@ -39,16 +39,16 @@ main = withSocketsDo $ do
             }
         }
 
+    local <- prepEndPoint mySockAddr
+
+    -- request an address and network settings
+
     tap <- getTapHandle (frmJst (inet_ntoa tapIp)) (frmJst (inet_ntoa tapMask))
 
     case tap of
         (Left t)        -> putStrLn $ "Failed: " ++ show t
-        (Right (t,mac)) -> doWork t mySockAddr (mkMyState mac) trackerEndPoints
+        (Right (t,mac)) -> startCom t local (mkMyState mac) trackerEndPoints
 
     where
         tToS (ScurryPeer ip port) = EndPoint ip port 
 
-doWork :: TapDesc -> EndPoint -> ScurryState -> [EndPoint] -> IO ()
-doWork tap mySockAddr state teps = do
-    local <- prepEndPoint mySockAddr
-    startCom tap local state teps

@@ -160,9 +160,9 @@ msgHandler sr swc cmts (ep,sm) = do
         SLANProbe        -> r_SLANProbe
         SLANSuggest pn   -> r_SLANSuggest pn
         SAddrRequest     -> r_SAddrRequest
-        SAddrReject      -> error "Not implemented"
-        SAddrPropose a   -> error "Not implemented"
-        SAddrSelect a    -> error "Not implemented"
+        -- SAddrReject      -> error "Not implemented"
+        SAddrPropose _   -> putStrLn "Got a proposal. Why?" >> return cmts
+        -- SAddrSelect a    -> error "Not implemented"
 
         bad -> r_bad bad
 

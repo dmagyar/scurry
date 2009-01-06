@@ -48,9 +48,9 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
          SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
          SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ (show $ srcAddr)
          SAddrRequest   -> fwd
-         SAddrReject    -> fwd
+         -- SAddrReject    -> fwd
          SAddrPropose _ -> fwd
-         SAddrSelect _  -> fwd
+         -- SAddrSelect _  -> fwd
          SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
     where fwd = writeChan cmchan srcAddr msg
           sckWrtWrite = writeChan swchan
