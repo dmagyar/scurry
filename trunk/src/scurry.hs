@@ -3,7 +3,7 @@ module Main where
 import System.Environment
 import System.IO
 
-import Network.Socket (withSocketsDo)
+import Network.Socket (Socket(..),withSocketsDo)
 
 import Scurry.Util
 import Scurry.Peer
@@ -13,6 +13,10 @@ import Scurry.Management.Config
 import Scurry.Management.Tracker
 import Scurry.State
 import Scurry.Types.Network
+import Scurry.Comm.SockSource (sockReadMsg)
+import Scurry.Comm.SockWrite (sendToAddr)
+
+import Control.Concurrent (threadDelay)
 -- import Scurry.Types.TAP
 
 main :: IO ()
@@ -52,3 +56,17 @@ main = withSocketsDo $ do
     where
         tToS (ScurryPeer ip port) = EndPoint ip port 
 
+
+{-
+getAddress :: Socket -> [EndPoint] -> IO (ScurryAddress, ScurryMask)
+getAddress sock (t:trackers) = do
+    let msg = SAddrRequest
+        cmd = sendToAddr sock msg
+    
+    putStrLn "Requesting address..."
+    cmd t
+
+    where
+        delayRead = do
+            threadDelay (sToMs 1.5)
+-}            

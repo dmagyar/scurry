@@ -27,7 +27,7 @@ data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
                | SLANSuggest ScurryPort           -- | A message to inform a peer that they may share a LAN with another.
                | SAddrRequest                     -- | A message to request an available VPN address
                -- | SAddrReject                      -- | A message to reject the address a peer has chosen
-               | SAddrPropose ScurryAddress       -- | A message to suggest an address to a peer
+               | SAddrPropose ScurryAddress ScurryMask -- | A message to suggest an address to a peer
                -- | SAddrSelect ScurryAddress        -- | A message to inform every one we're using an address 
                | SUnknown                         -- | An unknown message
     deriving (Show)
@@ -48,9 +48,9 @@ instance Binary ScurryMsg where
                   8  -> return SLANProbe                   -- SLANProbe
                   9  -> get >>= (return . SLANSuggest)     -- SLANSuggest
                   10 -> return SAddrRequest                -- SAddrRequest
-                  -- 11 -> return SAddrReject                 -- SAddrReject
-                  12 -> get >>= (return . SAddrPropose)    -- SAddrPropose
-                  -- 13 -> get >>= (return . SAddrSelect)     -- SAddrSelect
+                  -- 11 -> return SAddrReject              -- SAddrReject
+                  12 -> liftM2 SAddrPropose get get        -- SAddrPropose
+                  -- 13 -> get >>= (return . SAddrSelect)  -- SAddrSelect
                   _  -> return SUnknown                    -- Unknown Message
     
     put (SFrame fp)         = putWord8 0 >> put fp
@@ -65,7 +65,7 @@ instance Binary ScurryMsg where
     put (SLANSuggest ps)    = putWord8 9 >> put ps
     put SAddrRequest        = putWord8 10
     -- put SAddrReject         = putWord8 11
-    put (SAddrPropose p)    = putWord8 12 >> put p
+    put (SAddrPropose a m)    = putWord8 12 >> put a >> put m
     -- put (SAddrSelect p)     = putWord8 13 >> put p
     put SUnknown            = putWord8 255
 

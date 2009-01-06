@@ -1,5 +1,6 @@
 module Scurry.Comm.SockSource (
-sockSourceThread
+sockSourceThread,
+sockReadMsg,
 ) where
 
 import Control.Monad (forever)
@@ -49,7 +50,7 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
          SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ (show $ srcAddr)
          SAddrRequest   -> fwd
          -- SAddrReject    -> fwd
-         SAddrPropose _ -> fwd
+         SAddrPropose _ _ -> fwd
          -- SAddrSelect _  -> fwd
          SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
     where fwd = writeChan cmchan srcAddr msg
@@ -59,3 +60,8 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
 sockDecode :: BSS.ByteString -> ScurryMsg
 sockDecode msg = decode (BS.fromChunks [msg])
 
+
+sockReadMsg :: Socket -> IO (EndPoint, ScurryMsg)
+sockReadMsg sock = do
+    (buffer,addr) <- recvFrom sock readLength
+    return (saToEp addr, sockDecode buffer)
