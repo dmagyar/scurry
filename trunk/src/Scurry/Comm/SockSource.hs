@@ -15,15 +15,13 @@ import qualified Data.ByteString.Lazy as BS
 import Control.Concurrent.STM.TChan
 import GHC.Conc
 
-import Scurry.TapConfig
 import Scurry.Comm.Message
 import Scurry.Comm.Util
 import Scurry.State
 import Scurry.Types.Network
-import Scurry.Types.TAP
 import Scurry.Types.Threads
 
-sockSourceThread :: TapDesc -> Socket -> StateRef -> SockWriterChan -> ConMgrChan -> IO ()
+sockSourceThread :: TapWriterChan -> Socket -> StateRef -> SockWriterChan -> ConMgrChan -> IO ()
 sockSourceThread tap sock sr swchan cmchan = forever $ do
     (addr,msg) <- sockReader sock
     routeInfo tap sr swchan cmchan (addr,sockDecode msg)
@@ -34,11 +32,11 @@ sockReader sock = do
     (msg,addr) <- recvFrom sock readLength
     return (saToEp addr,msg)
 
-routeInfo :: TapDesc -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> IO ()
+routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> IO ()
 routeInfo tap _ swchan cmchan (srcAddr,msg) = do
 
     case msg of
-         SFrame (_,frame) -> write_tap tap frame
+         SFrame (_,frame) -> atomically $ writeTChan tap frame
          SKeepAlive     -> fwd
          SJoin _        -> fwd
          SJoinReply _ _ -> fwd

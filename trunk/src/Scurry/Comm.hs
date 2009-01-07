@@ -13,6 +13,7 @@ import System.IO
 
 import Scurry.Comm.Message
 import Scurry.Comm.TapSource
+import Scurry.Comm.TapWriter
 import Scurry.Comm.SockSource
 import Scurry.Comm.SockWrite
 import Scurry.Comm.Util
@@ -41,12 +42,14 @@ startCom tap sock initSS eps = do
     sr <- mkState initSS -- Initial ScurryState
     swchan <- atomically $ newTChan -- SockWriter Channel
     cmchan <- atomically $ newTChan -- Connection Manager Channel
+    twchan <- atomically $ newTChan -- TapWriter Channel
 
     tst <- forkIO $ tapSourceThread tap sr swchan
     swt <- forkIO $ sockWriteThread sock swchan
-    sst <- forkIO $ sockSourceThread tap sock sr swchan cmchan
+    sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan
     kat <- forkIO $ keepAliveThread sr swchan
     cmt <- forkIO $ conMgrThread sr swchan cmchan eps
+    twt <- forkIO $ tapWriterThread twchan tap
 
     -- For debugging
     labelThread tst "TAP Source Thread"
@@ -54,6 +57,7 @@ startCom tap sock initSS eps = do
     labelThread sst "Socket Source Thread"
     labelThread kat "Keep Alive Thread"
     labelThread cmt "Connection Manager Thread"
+    labelThread twt "Tap Writer Thread"
 
     -- Last thread is a continuation of the main thread
     consoleThread sr swchan
