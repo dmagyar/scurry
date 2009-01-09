@@ -3,7 +3,7 @@ module Main where
 import System.Environment
 import System.IO
 
-import Network.Socket (Socket(..),withSocketsDo)
+import Network.Socket (withSocketsDo)
 
 import Scurry.Util
 import Scurry.Peer
@@ -12,12 +12,8 @@ import Scurry.Comm
 import Scurry.Management.Config
 import Scurry.Management.Tracker
 import Scurry.State
+import Scurry.Network
 import Scurry.Types.Network
-import Scurry.Comm.SockSource (sockReadMsg)
-import Scurry.Comm.SockWrite (sendToAddr)
-
-import Control.Concurrent (threadDelay)
--- import Scurry.Types.TAP
 
 main :: IO ()
 main = withSocketsDo $ do 
@@ -34,7 +30,9 @@ main = withSocketsDo $ do
         mkMyState mac = ScurryState {
             scurryPeers = [],
             scurryEndPoint = mySockAddr,
-            scurryVpnMask = tapMask,
+            scurryNetwork = ScurryNetwork {
+                scurryMask = tapMask
+            },
             scurryMyRecord = PeerRecord {
                 peerMAC = mac,
                 peerEndPoint = EndPoint (ScurryAddress 0) (ScurryPort 0),

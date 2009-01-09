@@ -20,6 +20,7 @@ module Scurry.State (
 import Data.IORef
 import Data.List
 import Scurry.Types.Network
+import Scurry.Network
 import Scurry.Peer
 
 newtype StateRef = StateRef (IORef ScurryState)
@@ -28,7 +29,7 @@ newtype StateRef = StateRef (IORef ScurryState)
 data ScurryState = ScurryState {
     scurryPeers :: [PeerRecord],
     scurryEndPoint :: EndPoint,
-    scurryVpnMask :: ScurryMask,
+    scurryNetwork :: ScurryNetwork,
     scurryMyRecord :: PeerRecord
 } deriving (Show)
 
@@ -61,7 +62,7 @@ getEndPoint :: StateRef -> IO EndPoint
 getEndPoint = extract scurryEndPoint
 
 getVpnMask :: StateRef -> IO ScurryMask
-getVpnMask = extract scurryVpnMask
+getVpnMask = extract (scurryMask . scurryNetwork)
 
 getMAC :: StateRef -> IO MACAddr
 getMAC = extract (peerMAC . scurryMyRecord)
