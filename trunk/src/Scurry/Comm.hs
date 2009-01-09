@@ -33,7 +33,7 @@ prepEndPoint ep = do
     s <- socket AF_INET Datagram defaultProtocol
     bindSocket s (epToSa ep)
 
-    -- Set the broadcast option for IP packets on the socket
+    -- Set the broadcast option for IP packets (4) on the socket
     setSocketOption s Broadcast 4
     return s
 
@@ -44,12 +44,15 @@ startCom tap sock initSS eps = do
     cmchan <- atomically $ newTChan -- Connection Manager Channel
     twchan <- atomically $ newTChan -- TapWriter Channel
 
-    tst <- forkIO $ tapSourceThread tap sr swchan
     swt <- forkIO $ sockWriteThread sock swchan
     sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan
     kat <- forkIO $ keepAliveThread sr swchan
+
+    -- TODO: Bring up tap device here
+
     cmt <- forkIO $ conMgrThread sr swchan cmchan eps
     twt <- forkIO $ tapWriterThread twchan tap
+    tst <- forkIO $ tapSourceThread tap sr swchan
 
     -- For debugging
     labelThread tst "TAP Source Thread"
