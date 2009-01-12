@@ -19,6 +19,7 @@ module Scurry.State (
 
 import Data.IORef
 import Data.List
+import Control.Monad
 import Scurry.Types.Network
 import Scurry.Network
 import Scurry.Peer
@@ -34,7 +35,7 @@ data ScurryState = ScurryState {
 } deriving (Show)
 
 mkState :: ScurryState -> IO StateRef
-mkState ss = newIORef ss >>= (return . StateRef)
+mkState = liftM StateRef . newIORef
 
 getState :: StateRef -> IO ScurryState
 getState (StateRef sr) = readIORef sr
@@ -46,8 +47,8 @@ addPeer :: StateRef -> PeerRecord -> IO ()
 addPeer sr pr =
     let nubber (PeerRecord { peerEndPoint = a })
                (PeerRecord { peerEndPoint = b }) = a == b
-        ap ps = ps { scurryPeers = nubBy nubber (pr : scurryPeers ps) }
-    in alterState sr ap
+        np ps = ps { scurryPeers = nubBy nubber (pr : scurryPeers ps) }
+    in alterState sr np
 
 delPeer :: StateRef -> EndPoint -> IO ()
 delPeer sr ep = 
@@ -77,4 +78,4 @@ getMyRecord :: StateRef -> IO PeerRecord
 getMyRecord = extract scurryMyRecord
 
 extract :: (ScurryState -> a) -> StateRef -> IO a
-extract e (StateRef sr) = readIORef sr >>= (return . e)
+extract e (StateRef sr) = liftM e (readIORef sr)

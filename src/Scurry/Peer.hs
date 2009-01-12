@@ -24,7 +24,7 @@ instance Binary PeerRecord where
         e <- get
         v <- get
         p <- get
-        return $ PeerRecord {
+        return PeerRecord {
             peerMAC = m,
             peerEndPoint = e,
             peerVPNAddr = v,

@@ -33,7 +33,7 @@ frameSwitch sr chan m = do
           Just p  -> sendMsg (peerEndPoint p)
           Nothing -> mapM_ sendMsg (map peerEndPoint peers)
         where sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)
-      _ -> putStrLn $ "Error: Unexpected frame type from TAP"
+      _ -> putStrLn "Error: Unexpected frame type from TAP"
     
 tapDecode :: BSS.ByteString -> ScurryMsg
 tapDecode = SFrame . bsToEthernetTuple

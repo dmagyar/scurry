@@ -40,9 +40,9 @@ prepEndPoint ep = do
 startCom :: TapDesc -> Socket -> ScurryState -> [EndPoint] -> IO ()
 startCom tap sock initSS eps = do
     sr <- mkState initSS -- Initial ScurryState
-    swchan <- atomically $ newTChan -- SockWriter Channel
-    cmchan <- atomically $ newTChan -- Connection Manager Channel
-    twchan <- atomically $ newTChan -- TapWriter Channel
+    swchan <- atomically newTChan -- SockWriter Channel
+    cmchan <- atomically newTChan -- Connection Manager Channel
+    twchan <- atomically newTChan -- TapWriter Channel
 
     swt <- forkIO $ sockWriteThread sock swchan
     sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan

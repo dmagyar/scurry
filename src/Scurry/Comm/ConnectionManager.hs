@@ -3,7 +3,7 @@ module Scurry.Comm.ConnectionManager (
 ) where
 
 import qualified Data.Map as M
-import Control.Monad (forever)
+import Control.Monad
 import Control.Concurrent.STM
 import GHC.Conc
 import Data.Time
@@ -36,7 +36,7 @@ staleConnection :: NominalDiffTime
 staleConnection = 60 -- seconds
 
 heartBeatInterval :: Int
-heartBeatInterval = (sToMs 5)
+heartBeatInterval = sToMs 5
 
 -- | A status type that determines the state specific
 -- peers are in.
@@ -86,7 +86,7 @@ conMgrThread sr swc cmc eps = do
             cmts' <- case mv' of
                           HB   -> return cmts
                           CR m -> msgHandler sr swc cmts m
-            cleanConnections sr cmts' >>= manageConnections sr swc >>= return
+            cleanConnections sr cmts' >>= manageConnections sr swc
 
 -- | The Heart Beat Thread's purpose is to wake up the Connection
 -- Manager and have it check everything for sanity and make sure
@@ -115,7 +115,7 @@ cleanConnections sr cmts = do
     -- 3. Make a map we can run a difference on (bad')
     -- 4. Make a final map with all the good peers (good)
     let ps = check_cmts ct
-        bad = filter (\(_,v) -> v) ps
+        bad = filter snd ps
         bad' = M.fromList $ map (\(e,_) -> (e,Nothing)) bad
         good = M.differenceWithKey (\_ _ _ -> Nothing) (kaStatus cmts) bad'
 
@@ -142,15 +142,15 @@ manageConnections sr swc cmts = do
         w_chan = atomically . writeTChan swc 
         m t@(ep,s) = case s of
                           -- The peer is not established, send a join request
-                          (EPUnestablished x) -> do w_chan $ (DestSingle ep,SJoin (rec { peerEndPoint = ep }))
+                          (EPUnestablished x) -> do w_chan (DestSingle ep,SJoin (rec { peerEndPoint = ep }))
                                                     return (ep,EPUnestablished (x + 1))
                           -- The peer is fine, don't do anything
                           _ -> return t
 
-    mapM m l >>= (return . (\x -> cmts { kaStatus = x }) . M.fromList)
+    liftM ((\ x -> cmts{kaStatus = x}) . M.fromList) (mapM m l)
 
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
-msgHandler sr swc cmts (ep,sm) = do
+msgHandler sr swc cmts (ep,sm) =
     case sm of
         SKeepAlive       -> r_SKeepAlive
         SJoin rec        -> r_SJoin rec

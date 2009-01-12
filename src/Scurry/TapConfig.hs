@@ -25,8 +25,7 @@ import Scurry.Types.TAP
 import Scurry.Util
 
 getTapHandle :: String -> String -> IO (Either CInt (TapDesc,MACAddr))
-getTapHandle ip_str mask_str = do
-    open_tap (fromJust $ inet_addr ip_str) (fromJust $ inet_addr mask_str)
+getTapHandle ip_str = open_tap (fromJust $ inet_addr ip_str) . fromJust . inet_addr
 
 closeTapHandle :: TapDesc -> IO ()
 closeTapHandle = close_tap_ffi . unsafeForeignPtrToPtr

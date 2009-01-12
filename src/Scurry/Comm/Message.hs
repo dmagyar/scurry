@@ -3,7 +3,7 @@ module Scurry.Comm.Message(
     ScurryMsg(..),
 ) where
 
-import Control.Monad (liftM2)
+import Control.Monad
 import Data.Binary
 import qualified Data.ByteString as BSS
 import Data.Word
@@ -37,16 +37,16 @@ type FramePair = (EthernetHeader,BSS.ByteString)
 instance Binary ScurryMsg where
     get = do tag <- getWord8
              case tag of
-                  0  -> get >>= (return . SFrame)          -- SFrame
-                  1  -> get >>= (return . SJoin)           -- SJoin
+                  0  -> liftM SFrame get                   -- SFrame
+                  1  -> liftM SJoin  get            -- SJoin
                   2  -> liftM2 SJoinReply get get          -- SJoinReply
                   3  -> return SKeepAlive                  -- SKeepAlive
-                  4  -> get >>= (return . SNotifyPeer)     -- SNotifyPeer
+                  4  -> liftM SNotifyPeer get     -- SNotifyPeer
                   5  -> return SRequestPeer                -- SRequestPeer
-                  6  -> get >>= (return . SPing)           -- SPing
-                  7  -> get >>= (return . SEcho)           -- SEcho
+                  6  -> liftM SPing get           -- SPing
+                  7  -> liftM SEcho get           -- SEcho
                   8  -> return SLANProbe                   -- SLANProbe
-                  9  -> get >>= (return . SLANSuggest)     -- SLANSuggest
+                  9  -> liftM SLANSuggest get     -- SLANSuggest
                   10 -> return SAddrRequest                -- SAddrRequest
                   -- 11 -> return SAddrReject              -- SAddrReject
                   12 -> liftM2 SAddrPropose get get        -- SAddrPropose
