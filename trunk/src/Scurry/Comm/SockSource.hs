@@ -33,8 +33,7 @@ sockReader sock = do
     return (saToEp addr,msg)
 
 routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> IO ()
-routeInfo tap _ swchan cmchan (srcAddr,msg) = do
-
+routeInfo tap _ swchan cmchan (srcAddr,msg) =
     case msg of
          SFrame (_,frame) -> atomically $ writeTChan tap frame
          SKeepAlive     -> fwd
@@ -45,12 +44,12 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) = do
          SLANProbe      -> fwd
          SLANSuggest _  -> fwd
          SPing pid      -> sckWrtWrite (DestSingle srcAddr) (SEcho pid)
-         SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ (show $ srcAddr)
+         SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ show srcAddr
          SAddrRequest   -> fwd
          -- SAddrReject    -> fwd
          SAddrPropose _ _ -> fwd
          -- SAddrSelect _  -> fwd
-         SUnknown       -> putStrLn $ "Error: Received an unknown message tag."
+         SUnknown       -> putStrLn "Error: Received an unknown message tag."
     where fwd = writeChan cmchan srcAddr msg
           sckWrtWrite = writeChan swchan
           writeChan c d m = atomically $ writeTChan c (d,m)

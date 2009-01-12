@@ -14,6 +14,7 @@ module Scurry.Util(
 import qualified Network.Socket as INET (inet_addr,inet_ntoa)
 
 import Data.Time
+import Control.Monad
 import System.Random
 import System.IO.Unsafe (unsafePerformIO)
 
@@ -26,11 +27,11 @@ import Network.Util
  - run in IO. I also don't like how they throw errors
  - around instead of Nothing. I've fixed both problems! -}
 catch_to_maybe :: (t -> IO a) -> t -> IO (Maybe a)
-catch_to_maybe f a = catch (f a >>= (return . Just)) (\_ -> return Nothing)
+catch_to_maybe f a = catch (liftM Just (f a)) (\_ -> return Nothing)
 
 inet_addr :: String -> Maybe ScurryAddress
 inet_addr = unsafePerformIO .
-              catch_to_maybe (\v -> INET.inet_addr v >>= (return . ScurryAddress))
+              catch_to_maybe (\v -> liftM ScurryAddress (INET.inet_addr v))
 
 inet_ntoa :: ScurryAddress -> Maybe String
 inet_ntoa (ScurryAddress a) = unsafePerformIO $ catch_to_maybe INET.inet_ntoa a

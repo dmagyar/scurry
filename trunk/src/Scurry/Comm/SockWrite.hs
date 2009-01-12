@@ -25,7 +25,7 @@ sockWriter sock chan = do
     (dst,msg) <- atomically $ readTChan chan
     
     case dst of
-         DestSingle addr -> (sendToAddr sock msg addr) >> return ()
+         DestSingle addr -> sendToAddr sock msg addr >> return ()
          DestList addrs -> mapM_ (sendToAddr sock msg) addrs
 
 

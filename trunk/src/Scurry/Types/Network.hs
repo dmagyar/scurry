@@ -48,7 +48,7 @@ type EthType = Word16
 instance Show EthernetHeader where
     show (EthernetHeader d s t) = concat ["{EthHdr ", (show s),
                                           " -> ", (show d),
-                                          " :: 0x", (showHex t $ "}")]
+                                          " :: 0x", (showHex t "}")]
 
 instance Binary EthernetHeader where
     get = do
