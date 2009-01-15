@@ -8,6 +8,7 @@ import System.IO
 import qualified Data.ByteString as BSS
 import GHC.Conc
 import Data.List (find)
+import Data.Maybe
 
 import Scurry.Peer
 import Scurry.Comm.Message
@@ -20,21 +21,20 @@ import Scurry.Types.Network
 
 tapSourceThread :: TapDesc -> StateRef -> SockWriterChan -> IO ()
 tapSourceThread tap sr chan = forever $
-    read_tap tap >>=
-    (\x -> frameSwitch sr chan (tapDecode x))
+    read_tap tap >>= ((frameSwitch sr chan) . tapDecode)
 
 frameSwitch :: StateRef -> SockWriterChan -> ScurryMsg -> IO ()
-frameSwitch sr chan m = do
+frameSwitch sr chan m@(SFrame bs) = do
     peers <- getPeers sr
 
-    case m of 
-      SFrame ((EthernetHeader dst _ _), _) -> 
-        case find (\pr -> dst == peerMAC pr) peers of 
-          Just p  -> sendMsg (peerEndPoint p)
-          Nothing -> mapM_ sendMsg (map peerEndPoint peers)
-        where sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)
-      _ -> putStrLn "Error: Unexpected frame type from TAP"
+    let (EthernetHeader dst _ _) = bsToEthHdr bs
+        sendMsg dest = atomically $ writeTChan chan (DestSingle dest, m)
+
+    case find (\pr -> (Just dst) == peerMAC pr) peers of 
+      Just p  -> sendMsg (peerEndPoint p)
+      Nothing -> mapM_ sendMsg (map peerEndPoint peers)
+frameSwitch _ _ _ = error "Unexpected ScurryMsg sent to frameSwitch."
     
 tapDecode :: BSS.ByteString -> ScurryMsg
-tapDecode = SFrame . bsToEthernetTuple
+tapDecode = SFrame
 

@@ -35,7 +35,7 @@ sockReader sock = do
 routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> IO ()
 routeInfo tap _ swchan cmchan (srcAddr,msg) =
     case msg of
-         SFrame (_,frame) -> atomically $ writeTChan tap frame
+         SFrame frame   -> atomically $ writeTChan tap frame
          SKeepAlive     -> fwd
          SJoin _        -> fwd
          SJoinReply _ _ -> fwd

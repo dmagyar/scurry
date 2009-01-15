@@ -7,7 +7,6 @@ module Scurry.TapConfig(
     write_tap,
 ) where
 
-import Data.Maybe
 import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Ptr
@@ -22,10 +21,9 @@ import qualified Data.ByteString.Unsafe as BSU
 
 import Scurry.Types.Network
 import Scurry.Types.TAP
-import Scurry.Util
 
-getTapHandle :: String -> String -> IO (Either CInt (TapDesc,MACAddr))
-getTapHandle ip_str = open_tap (fromJust $ inet_addr ip_str) . fromJust . inet_addr
+getTapHandle :: ScurryAddress -> ScurryMask -> IO (Either CInt (TapDesc,MACAddr))
+getTapHandle ip mask = open_tap ip mask
 
 closeTapHandle :: TapDesc -> IO ()
 closeTapHandle = close_tap_ffi . unsafeForeignPtrToPtr

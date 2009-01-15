@@ -5,9 +5,7 @@ import System.IO
 
 import Network.Socket (withSocketsDo)
 
-import Scurry.Util
 import Scurry.Peer
-import Scurry.TapConfig
 import Scurry.Comm
 import Scurry.Management.Config
 import Scurry.Management.Tracker
@@ -25,31 +23,24 @@ main = withSocketsDo $ do
     let (Scurry (VpnConfig tapIp tapMask) (NetworkConfig mySockAddr)) = config
         trackerEndPoints = filter (/= mySockAddr) $ map tToS tracker
 
-    let frmJst (Just x) = x
-        frmJst Nothing = error "If you can't type an IP address right, I'm not even going to try and run."
-        mkMyState mac = ScurryState {
+    let initState = ScurryState {
             scurryPeers = [],
             scurryEndPoint = mySockAddr,
             scurryNetwork = ScurryNetwork {
                 scurryMask = tapMask
             },
             scurryMyRecord = PeerRecord {
-                peerMAC = mac,
+                peerMAC = Nothing,
                 peerEndPoint = EndPoint (ScurryAddress 0) (ScurryPort 0),
                 peerVPNAddr = tapIp,
                 peerLocalPort = (\(EndPoint _ p) -> p) mySockAddr
             }
         }
+        tapNet = (tapIp, tapMask)
 
     local <- prepEndPoint mySockAddr
 
-    -- request an address and network settings
-
-    tap <- getTapHandle (frmJst (inet_ntoa tapIp)) (frmJst (inet_ntoa tapMask))
-
-    case tap of
-        (Left t)        -> putStrLn $ "Failed: " ++ show t
-        (Right (t,mac)) -> startCom t local (mkMyState mac) trackerEndPoints
+    startCom tapNet local initState trackerEndPoints
 
     where
         tToS (ScurryPeer ip port) = EndPoint ip port 
