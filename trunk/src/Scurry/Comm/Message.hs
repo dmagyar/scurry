@@ -1,5 +1,4 @@
 module Scurry.Comm.Message(
-    FramePair,
     ScurryMsg(..),
 ) where
 
@@ -15,7 +14,7 @@ type PingID = Word32
 
 -- |These are the messages we get across the network.
 -- They are the management and data protocol.
-data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
+data ScurryMsg = SFrame BSS.ByteString            -- | An ethernet frame.
                | SJoin PeerRecord                 -- | A network join request.
                | SJoinReply PeerRecord [EndPoint] -- | A network join reply.
                | SKeepAlive                       -- | A keep alive message. 
@@ -31,8 +30,6 @@ data ScurryMsg = SFrame FramePair                 -- | An ethernet frame.
                -- | SAddrSelect ScurryAddress        -- | A message to inform every one we're using an address 
                | SUnknown                         -- | An unknown message
     deriving (Show)
-
-type FramePair = (EthernetHeader,BSS.ByteString)
 
 instance Binary ScurryMsg where
     get = do tag <- getWord8

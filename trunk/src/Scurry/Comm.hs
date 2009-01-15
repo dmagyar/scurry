@@ -1,6 +1,5 @@
 module Scurry.Comm(
     prepEndPoint,
-    debugFrame,
     startCom,
     module Scurry.Comm.Message,
 ) where
@@ -16,14 +15,14 @@ import Scurry.Comm.TapSource
 import Scurry.Comm.TapWriter
 import Scurry.Comm.SockSource
 import Scurry.Comm.SockWrite
-import Scurry.Comm.Util
 import Scurry.KeepAlive
 import Scurry.Console
 import Scurry.Comm.ConnectionManager
 
 import Scurry.State
+import Scurry.Peer
 import Scurry.Types.Network
-import Scurry.Types.TAP
+import Scurry.TapConfig
 
 -- |Bind the socket to the specified socket address.
 -- This specifies the network configuration we are using
@@ -37,8 +36,8 @@ prepEndPoint ep = do
     setSocketOption s Broadcast 4
     return s
 
-startCom :: TapDesc -> Socket -> ScurryState -> [EndPoint] -> IO ()
-startCom tap sock initSS eps = do
+startCom :: (ScurryAddress, ScurryMask) -> Socket -> ScurryState -> [EndPoint] -> IO ()
+startCom (tapaddr,tapmask) sock initSS eps = do
     sr <- mkState initSS -- Initial ScurryState
     swchan <- atomically newTChan -- SockWriter Channel
     cmchan <- atomically newTChan -- Connection Manager Channel
@@ -48,7 +47,9 @@ startCom tap sock initSS eps = do
     sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan
     kat <- forkIO $ keepAliveThread sr swchan
 
-    -- TODO: Bring up tap device here
+    -- Bring up tap device
+    Right (tap,macaddr) <- getTapHandle tapaddr tapmask
+    alterState sr (setMac (Just macaddr))
 
     cmt <- forkIO $ conMgrThread sr swchan cmchan eps
     twt <- forkIO $ tapWriterThread twchan tap
@@ -65,3 +66,6 @@ startCom tap sock initSS eps = do
     -- Last thread is a continuation of the main thread
     consoleThread sr swchan
 
+    where setMac mac state = let rec = scurryMyRecord state
+                             in  state { scurryMyRecord = ( rec { peerMAC = mac } ) }
+            

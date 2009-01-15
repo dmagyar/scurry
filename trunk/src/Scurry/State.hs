@@ -65,7 +65,7 @@ getEndPoint = extract scurryEndPoint
 getVpnMask :: StateRef -> IO ScurryMask
 getVpnMask = extract (scurryMask . scurryNetwork)
 
-getMAC :: StateRef -> IO MACAddr
+getMAC :: StateRef -> IO (Maybe MACAddr)
 getMAC = extract (peerMAC . scurryMyRecord)
 
 getLocalPort :: StateRef -> IO ScurryPort
