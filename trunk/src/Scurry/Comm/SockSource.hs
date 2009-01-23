@@ -1,6 +1,5 @@
 module Scurry.Comm.SockSource (
-sockSourceThread,
-sockReadMsg,
+    sockSourceThread,
 ) where
 
 import Control.Monad (forever)
@@ -8,8 +7,8 @@ import Data.Binary
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import System.IO
-import Network.Socket hiding (send, sendTo, recv, recvFrom)
-import Network.Socket.ByteString
+import Network.Socket.ByteString (recvFrom)
+import Network.Socket (Socket)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import Control.Concurrent.STM.TChan
@@ -23,15 +22,13 @@ import Scurry.Types.Threads
 
 sockSourceThread :: TapWriterChan -> Socket -> StateRef -> SockWriterChan -> ConMgrChan -> (MVar (ScurryAddress, ScurryMask)) -> IO ()
 sockSourceThread tap sock sr swchan cmchan tap_mv = forever $ do
-    (addr,msg) <- sockReader sock
-    routeInfo tap sr swchan cmchan (addr,sockDecode msg) tap_mv
-    return ()
-    
-sockReader :: Socket -> IO (EndPoint,BSS.ByteString)
-sockReader sock = do
     (msg,addr) <- recvFrom sock readLength
-    return (saToEp addr,msg)
 
+    routeInfo tap sr swchan cmchan (saToEp addr,sockDecode msg) tap_mv
+    return ()
+
+    where sockDecode = decode  . BS.fromChunks . return
+    
 routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> (MVar (ScurryAddress, ScurryMask)) -> IO ()
 routeInfo tap _ swchan cmchan (srcAddr,msg) tap_mv =
     case msg of
@@ -53,12 +50,3 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) tap_mv =
     where fwd = writeChan cmchan srcAddr msg
           sckWrtWrite = writeChan swchan
           writeChan c d m = atomically $ writeTChan c (d,m)
-
-sockDecode :: BSS.ByteString -> ScurryMsg
-sockDecode msg = decode (BS.fromChunks [msg])
-
-
-sockReadMsg :: Socket -> IO (EndPoint, ScurryMsg)
-sockReadMsg sock = do
-    (buffer,addr) <- recvFrom sock readLength
-    return (saToEp addr, sockDecode buffer)
