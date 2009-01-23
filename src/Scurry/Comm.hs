@@ -4,6 +4,7 @@ module Scurry.Comm(
     module Scurry.Comm.Message,
 ) where
 
+import Data.Maybe
 
 import Control.Concurrent.STM.TChan
 import GHC.Conc
@@ -36,32 +37,44 @@ prepEndPoint ep = do
     setSocketOption s Broadcast 4
     return s
 
-startCom :: (ScurryAddress, ScurryMask) -> Socket -> ScurryState -> [EndPoint] -> IO ()
-startCom (tapaddr,tapmask) sock initSS eps = do
+startCom :: (Maybe ScurryAddress, Maybe ScurryMask) -> Socket -> ScurryState -> [EndPoint] -> IO ()
+startCom tapCfg sock initSS eps = do
     sr <- mkState initSS -- Initial ScurryState
     swchan <- atomically newTChan -- SockWriter Channel
     cmchan <- atomically newTChan -- Connection Manager Channel
     twchan <- atomically newTChan -- TapWriter Channel
 
+    tap_mv <- newEmptyMVar
+
+    case tapCfg of
+         (Just a, Just m) -> putMVar tap_mv (a,m)
+         _                   -> putStrLn "Requesting network settings from peers..."
+
     swt <- forkIO $ sockWriteThread sock swchan
-    sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan
+    sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan tap_mv
     kat <- forkIO $ keepAliveThread sr swchan
-
-    -- Bring up tap device
-    Right (tap,macaddr) <- getTapHandle tapaddr tapmask
-    alterState sr (setMac (Just macaddr))
-
     cmt <- forkIO $ conMgrThread sr swchan cmchan eps
-    twt <- forkIO $ tapWriterThread twchan tap
-    tst <- forkIO $ tapSourceThread tap sr swchan
 
-    -- For debugging
-    labelThread tst "TAP Source Thread"
     labelThread swt "Socket Write Thread"
     labelThread sst "Socket Source Thread"
     labelThread kat "Keep Alive Thread"
     labelThread cmt "Connection Manager Thread"
-    labelThread twt "Tap Writer Thread"
+
+    helper <- forkIO $ do
+        (tapaddr,tapmask) <- takeMVar tap_mv
+        putStrLn $ "Using TAP IP of " ++ (show tapaddr) ++ " and TAP netmask of " ++ (show tapmask)
+
+        -- Bring up tap device
+        Right (tap,macaddr) <- getTapHandle tapaddr tapmask 
+        alterState sr (setMac (Just macaddr))
+
+        twt <- forkIO $ tapWriterThread twchan tap
+        tst <- forkIO $ tapSourceThread tap sr swchan
+        labelThread tst "TAP Source Thread"
+        labelThread twt "Tap Writer Thread"
+
+    -- Helper thread to get me to the console while we wait for the TAP to come up.
+    labelThread helper "Helper Thread"
 
     -- Last thread is a continuation of the main thread
     consoleThread sr swchan

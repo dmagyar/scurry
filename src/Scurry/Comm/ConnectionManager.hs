@@ -7,6 +7,7 @@ import Control.Monad
 import Control.Concurrent.STM
 import GHC.Conc
 import Data.Time
+import Data.Maybe
 
 import Scurry.State
 import Scurry.Peer
@@ -174,14 +175,14 @@ msgHandler sr swc cmts (ep,sm) =
             myRec <- getMyRecord sr
             mask  <- getVpnMask sr
 
-            let peerAddrs = map peerVPNAddr peers
+            let peerAddrs = map (fromJust . peerVPNAddr) peers
                 dest = DestSingle ep
             
-            addr <- genRandAddr peerAddrs (peerVPNAddr myRec) mask 
+            addr <- genRandAddr peerAddrs (fromJust . peerVPNAddr $ myRec) (fromJust mask)
 
             putStrLn $ "Suggesting address " ++ show addr ++ " to " ++ show ep
 
-            atomically $ writeTChan swc (dest,SAddrPropose addr mask)
+            atomically $ writeTChan swc (dest,SAddrPropose addr (fromJust mask))
 
             return cmts
 

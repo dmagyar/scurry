@@ -13,7 +13,7 @@ type LocalPort = ScurryPort
 data PeerRecord = PeerRecord {
     peerMAC :: Maybe MACAddr,
     peerEndPoint :: EndPoint,
-    peerVPNAddr :: VPNAddr,
+    peerVPNAddr :: Maybe VPNAddr,
     peerLocalPort :: LocalPort
 } deriving (Show)
 
