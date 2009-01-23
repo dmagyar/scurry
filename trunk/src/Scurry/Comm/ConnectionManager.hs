@@ -175,14 +175,16 @@ msgHandler sr swc cmts (ep,sm) =
             myRec <- getMyRecord sr
             mask  <- getVpnMask sr
 
-            let peerAddrs = map (fromJust . peerVPNAddr) peers
-                dest = DestSingle ep
+            case isJust (peerVPNAddr myRec) of
+                False -> return ()
+                True -> do let peerAddrs = map (fromJust . peerVPNAddr) (filter (isJust . peerVPNAddr) peers)
+                               dest = DestSingle ep
             
-            addr <- genRandAddr peerAddrs (fromJust . peerVPNAddr $ myRec) (fromJust mask)
+                           addr <- genRandAddr peerAddrs (fromJust . peerVPNAddr $ myRec) (fromJust mask)
 
-            putStrLn $ "Suggesting address " ++ show addr ++ " to " ++ show ep
+                           putStrLn $ "Suggesting address " ++ show addr ++ " to " ++ show ep
 
-            atomically $ writeTChan swc (dest,SAddrPropose addr (fromJust mask))
+                           atomically $ writeTChan swc (dest,SAddrPropose addr (fromJust mask))
 
             return cmts
 
