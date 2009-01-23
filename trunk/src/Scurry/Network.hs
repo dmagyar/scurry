@@ -5,5 +5,5 @@ module Scurry.Network (
 import Scurry.Types.Network
 
 data ScurryNetwork = ScurryNetwork {
-    scurryMask :: ScurryMask
+    scurryMask :: Maybe ScurryMask
 } deriving (Show)

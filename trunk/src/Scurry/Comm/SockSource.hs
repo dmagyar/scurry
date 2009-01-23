@@ -21,10 +21,10 @@ import Scurry.State
 import Scurry.Types.Network
 import Scurry.Types.Threads
 
-sockSourceThread :: TapWriterChan -> Socket -> StateRef -> SockWriterChan -> ConMgrChan -> IO ()
-sockSourceThread tap sock sr swchan cmchan = forever $ do
+sockSourceThread :: TapWriterChan -> Socket -> StateRef -> SockWriterChan -> ConMgrChan -> (MVar (ScurryAddress, ScurryMask)) -> IO ()
+sockSourceThread tap sock sr swchan cmchan tap_mv = forever $ do
     (addr,msg) <- sockReader sock
-    routeInfo tap sr swchan cmchan (addr,sockDecode msg)
+    routeInfo tap sr swchan cmchan (addr,sockDecode msg) tap_mv
     return ()
     
 sockReader :: Socket -> IO (EndPoint,BSS.ByteString)
@@ -32,8 +32,8 @@ sockReader sock = do
     (msg,addr) <- recvFrom sock readLength
     return (saToEp addr,msg)
 
-routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> IO ()
-routeInfo tap _ swchan cmchan (srcAddr,msg) =
+routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPoint,ScurryMsg) -> (MVar (ScurryAddress, ScurryMask)) -> IO ()
+routeInfo tap _ swchan cmchan (srcAddr,msg) tap_mv =
     case msg of
          SFrame frame   -> atomically $ writeTChan tap frame
          SKeepAlive     -> fwd
@@ -47,7 +47,7 @@ routeInfo tap _ swchan cmchan (srcAddr,msg) =
          SEcho eid      -> putStrLn $ "Echo: " ++ show eid ++ show srcAddr
          SAddrRequest   -> fwd
          -- SAddrReject    -> fwd
-         SAddrPropose _ _ -> fwd
+         SAddrPropose a m -> tryPutMVar tap_mv (a,m) >> return ()
          -- SAddrSelect _  -> fwd
          SUnknown       -> putStrLn "Error: Received an unknown message tag."
     where fwd = writeChan cmchan srcAddr msg
