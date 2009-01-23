@@ -52,7 +52,7 @@ startCom tapCfg sock initSS eps = do
 
     swt <- forkIO $ sockWriteThread sock swchan
     sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan tap_mv
-    kat <- forkIO $ keepAliveThread sr swchan
+    kat <- forkIO $ keepAliveThread sr swchan tap_mv
     cmt <- forkIO $ conMgrThread sr swchan cmchan eps
 
     labelThread swt "Socket Write Thread"
