@@ -6,7 +6,7 @@ License:       BSD3
 License-File:  LICENSE
 Author:        John Van Enk
 Maintainer:    vanenkj@gmail.com
-Copyright:     John Van Enk, 2008
+Copyright:     John Van Enk, 2009
 
 Synopsis:      A cross platform P2P VPN application built using Haskell.
 Stability:     Experimental
@@ -27,7 +27,7 @@ Description:   P2P VPN implementation currently without any encryption.
                you hit hundreds or thousands of peers.
                .
                Requires a TAP-Win32 driver to run in Windows. Requires the tun
-               module to be loaded to run in Linux (expects /dev/net/tun).
+               module to be loaded to run in Linux (expects \/dev\/net\/tun).
 
 Homepage:      http://code.google.com/p/scurry/
 
