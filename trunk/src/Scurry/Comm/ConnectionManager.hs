@@ -153,7 +153,7 @@ manageConnections sr swc cmts = do
 msgHandler :: StateRef -> SockWriterChan -> CMTState -> (EndPoint,ScurryMsg) -> IO CMTState
 msgHandler sr swc cmts (ep,sm) =
     case sm of
-        SKeepAlive       -> r_SKeepAlive
+        SKeepAlive r     -> r_SKeepAlive r
         SJoin rec        -> r_SJoin rec
         SJoinReply rec p -> r_SJoinReply rec p
         SNotifyPeer np   -> r_SNotifyPeer np
@@ -196,8 +196,9 @@ msgHandler sr swc cmts (ep,sm) =
         r_SAddrSelect a = do
         -}
 
-        r_SKeepAlive = do
+        r_SKeepAlive r = do
             ct <- getCurrentTime
+            updatePeer sr ep r
             return $ cmts { kaStatus = (M.insert ep
                                                  (EPEstablished ct)
                                                  (kaStatus cmts)) }

@@ -33,7 +33,7 @@ routeInfo :: TapWriterChan -> StateRef -> SockWriterChan -> ConMgrChan -> (EndPo
 routeInfo tap _ swchan cmchan (srcAddr,msg) tap_mv =
     case msg of
          SFrame frame   -> atomically $ writeTChan tap frame
-         SKeepAlive     -> fwd
+         SKeepAlive _   -> fwd
          SJoin _        -> fwd
          SJoinReply _ _ -> fwd
          SNotifyPeer _  -> fwd

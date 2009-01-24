@@ -28,7 +28,8 @@ isMVarFull mv = do
 keepAliveThread :: StateRef -> SockWriterChan -> (MVar (ScurryAddress, ScurryMask)) -> IO ()
 keepAliveThread sr chan tap_mv = forever $ do
     peers <- getPeers sr
-    mapM_ messenger peers
+    myref <- getMyRecord sr
+    mapM_ (messenger myref) peers
     threadDelay (sToMs 10)
 
     b <- isMVarFull tap_mv
@@ -37,8 +38,8 @@ keepAliveThread sr chan tap_mv = forever $ do
          else mapM_ reqaddr peers
 
     where sendMsg dest msg = atomically $ writeTChan chan (dest,msg)
-          messenger pr = sendMsg (DestSingle (peerEndPoint pr)) SKeepAlive
-          reqaddr   pr = sendMsg (DestSingle (peerEndPoint pr)) SAddrRequest
+          messenger rec pr = sendMsg (DestSingle (peerEndPoint pr)) (SKeepAlive rec)
+          reqaddr   pr     = sendMsg (DestSingle (peerEndPoint pr)) SAddrRequest
           
             {-
             case mac of

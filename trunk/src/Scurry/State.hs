@@ -5,6 +5,7 @@ module Scurry.State (
     alterState,
     addPeer,
     delPeer,
+    updatePeer,
 
     getPeers,
     getEndPoint,
@@ -55,6 +56,13 @@ delPeer sr ep =
     let f = filter (\(PeerRecord { peerEndPoint = o }) -> ep /= o)
         dp s = s { scurryPeers = f (scurryPeers s) }
     in alterState sr dp
+
+updatePeer :: StateRef -> EndPoint -> PeerRecord -> IO ()
+updatePeer sr ep pr =
+    let pr'  = pr { peerEndPoint = ep } -- Just make sure that we have the right End Point filled in
+        f    =  (pr':) . (filter (\(PeerRecord { peerEndPoint = e }) -> ep /= e))
+        up s = s { scurryPeers = f (scurryPeers s) }
+    in alterState sr up
 
 getPeers :: StateRef -> IO [PeerRecord]
 getPeers = extract scurryPeers
