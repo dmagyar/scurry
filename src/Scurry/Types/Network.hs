@@ -72,7 +72,7 @@ instance Enum ScurryAddress where
 instance Show ScurryAddress where
     -- We use unsafePerformIO here to avoid referencing the
     -- version of inet_ntoa in Scurry.Util since this would
-    -- case a cycle. TODO: Fix this later.
+    -- cause a cycle. TODO: Fix this later.
     show (ScurryAddress ha) = unsafePerformIO $ inet_ntoa ha
 
 newtype ScurryPort = ScurryPort PortNumber
