@@ -7,6 +7,7 @@ module Scurry.Comm(
 import Data.Maybe
 
 import Control.Concurrent.STM.TChan
+import Control.Concurrent.MVar
 import GHC.Conc
 import Network.Socket (Socket(..), Family(..), socket, SocketType(..), defaultProtocol, bindSocket, setSocketOption, SocketOption(Broadcast))
 import System.IO
@@ -61,21 +62,8 @@ startCom tapCfg sock initSS eps = do
     labelThread cmt "Connection Manager Thread"
 
     helper <- forkIO $ do
-        {- 
-         - Okay, the next wo lines need a little explanation:
-         - 
-         - This MVar is used to gather an address (the first one we're handed
-         - from some one else) from the Connection Manager. Once this MVar is
-         - full, we're free to bring up the TAP device. Well, once we take 
-         - the MVar, the KeepAlive thread (responsible for sending the request
-         - messages) will think we need to request another address. If we want
-         - to prevent this behavior, we need to try and put the MVar back when
-         - we are done... which is why we use tryPutMVar after we get the addr
-         - and the mask.
-         -}
-
-        tt@(tapaddr,tapmask) <- takeMVar tap_mv
-        tryPutMVar tap_mv tt
+        -- Use readMVar to prevent emptying the box.
+        (tapaddr,tapmask) <- readMVar tap_mv
 
         putStrLn $ "Using TAP IP of " ++ (show tapaddr) ++ " and TAP netmask of " ++ (show tapmask)
 
