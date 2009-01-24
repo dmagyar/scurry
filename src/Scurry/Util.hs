@@ -63,7 +63,14 @@ isInMask mask net addr = let m = scurryAddr mask
 enumAllInMask :: ScurryMask -> ScurryAddress -> [ScurryAddress]
 enumAllInMask mask net = let l = networkLowAddress mask net
                              h = networkHighAddress mask net
-                         in [l..h]
+                         in eh l h
+    where eh l' h' = if l' == h'
+                        then h' : []
+                        else l' : (eh (incrementAddress l') h')
+
+incrementAddress :: ScurryAddress -> ScurryAddress
+incrementAddress a = let a' = (ntohl . scurryAddr) a
+                     in ScurryAddress $ htonl (a' + 1)
 
 networkLowAddress :: ScurryMask -> ScurryAddress -> ScurryAddress
 networkLowAddress mask addr = let a = (ntohl . scurryAddr) addr
@@ -76,4 +83,4 @@ networkHighAddress mask addr = let m = (ntohl . scurryAddr) mask
                                    a = (ntohl . scurryAddr) addr
                                    c = complement m
                                    n = (m .&. a) + c
-                               in ScurryAddress (htonl (n - 1)) -- Highest address is broadcast
+                               in ScurryAddress $ htonl (n - 1) -- Highest address is broadcast
