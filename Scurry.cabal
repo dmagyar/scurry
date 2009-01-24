@@ -87,6 +87,7 @@ executable scurry
     if os(darwin) || os(freebsd)
         build-depends: unix >= 2.3.0.0
         c-sources:          src/C/help-bsd.c
+                            src/C/tun_ioctls.h
         cc-options:         -D BSD
         cpp-options:        -DCALLCONV=ccall
  
