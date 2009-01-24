@@ -48,7 +48,7 @@ startCom tapCfg sock initSS eps = do
 
     case tapCfg of
          (Just a, Just m) -> putMVar tap_mv (a,m)
-         _                   -> putStrLn "Requesting network settings from peers..."
+         _                -> putStrLn "Requesting network settings from peers..."
 
     swt <- forkIO $ sockWriteThread sock swchan
     sst <- forkIO $ sockSourceThread twchan sock sr swchan cmchan tap_mv
@@ -61,7 +61,22 @@ startCom tapCfg sock initSS eps = do
     labelThread cmt "Connection Manager Thread"
 
     helper <- forkIO $ do
-        (tapaddr,tapmask) <- takeMVar tap_mv
+        {- 
+         - Okay, the next wo lines need a little explanation:
+         - 
+         - This MVar is used to gather an address (the first one we're handed
+         - from some one else) from the Connection Manager. Once this MVar is
+         - full, we're free to bring up the TAP device. Well, once we take 
+         - the MVar, the KeepAlive thread (responsible for sending the request
+         - messages) will think we need to request another address. If we want
+         - to prevent this behavior, we need to try and put the MVar back when
+         - we are done... which is why we use tryPutMVar after we get the addr
+         - and the mask.
+         -}
+
+        tt@(tapaddr,tapmask) <- takeMVar tap_mv
+        tryPutMVar tap_mv tt
+
         putStrLn $ "Using TAP IP of " ++ (show tapaddr) ++ " and TAP netmask of " ++ (show tapmask)
 
         -- Bring up tap device
