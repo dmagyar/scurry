@@ -37,6 +37,8 @@ This is a short description which will help you get Scurry running on various pl
 
 = OS/X =
   * Install [http://tuntaposx.sourceforge.net/ TUNTAP driver] for OS X
+  * Same steps as for Linux
 
 = FreeBSD (possibly others) =
   * Run 'kldload if_tap'
+  * Same steps as for Linux
