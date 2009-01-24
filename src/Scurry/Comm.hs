@@ -22,7 +22,6 @@ import Scurry.Comm.ConnectionManager
 
 import Scurry.Util
 import Scurry.State
-import Scurry.Peer
 import Scurry.Types.Network
 import Scurry.TapConfig
 
@@ -67,7 +66,11 @@ startCom tapCfg sock initSS eps = do
 
         -- Bring up tap device
         Right (tap,macaddr) <- getTapHandle tapaddr tapmask 
-        alterState sr (setMac (Just macaddr))
+        -- alterState sr (setMac (Just macaddr))
+
+        updateMyMAC sr macaddr
+        updateMyVPNAddr sr tapaddr
+        updateNetMask sr tapmask
 
         twt <- forkIO $ tapWriterThread twchan tap
         tst <- forkIO $ tapSourceThread tap sr swchan
@@ -80,6 +83,3 @@ startCom tapCfg sock initSS eps = do
     -- Last thread is a continuation of the main thread
     consoleThread sr swchan
 
-    where setMac mac state = let rec = scurryMyRecord state
-                             in  state { scurryMyRecord = ( rec { peerMAC = mac } ) }
-            
