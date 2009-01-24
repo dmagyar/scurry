@@ -17,7 +17,7 @@ type PingID = Word32
 data ScurryMsg = SFrame BSS.ByteString            -- | An ethernet frame.
                | SJoin PeerRecord                 -- | A network join request.
                | SJoinReply PeerRecord [EndPoint] -- | A network join reply.
-               | SKeepAlive                       -- | A keep alive message. 
+               | SKeepAlive PeerRecord            -- | A keep alive message. 
                | SNotifyPeer EndPoint             -- | A message to notify others of a peer.
                | SRequestPeer                     -- | A message to request peer listings on the network.
                | SPing PingID                     -- | A Ping command used for diagnostics.
@@ -34,26 +34,26 @@ data ScurryMsg = SFrame BSS.ByteString            -- | An ethernet frame.
 instance Binary ScurryMsg where
     get = do tag <- getWord8
              case tag of
-                  0  -> liftM SFrame get                   -- SFrame
-                  1  -> liftM SJoin  get            -- SJoin
-                  2  -> liftM2 SJoinReply get get          -- SJoinReply
-                  3  -> return SKeepAlive                  -- SKeepAlive
+                  0  -> liftM SFrame get          -- SFrame
+                  1  -> liftM SJoin  get          -- SJoin
+                  2  -> liftM2 SJoinReply get get -- SJoinReply
+                  3  -> liftM SKeepAlive get      -- SKeepAlive
                   4  -> liftM SNotifyPeer get     -- SNotifyPeer
-                  5  -> return SRequestPeer                -- SRequestPeer
+                  5  -> return SRequestPeer       -- SRequestPeer
                   6  -> liftM SPing get           -- SPing
                   7  -> liftM SEcho get           -- SEcho
-                  8  -> return SLANProbe                   -- SLANProbe
+                  8  -> return SLANProbe          -- SLANProbe
                   9  -> liftM SLANSuggest get     -- SLANSuggest
-                  10 -> return SAddrRequest                -- SAddrRequest
-                  -- 11 -> return SAddrReject              -- SAddrReject
-                  12 -> liftM2 SAddrPropose get get        -- SAddrPropose
+                  10 -> return SAddrRequest       -- SAddrRequest
+                  -- 11 -> return SAddrReject        -- SAddrReject
+                  12 -> liftM2 SAddrPropose get get  -- SAddrPropose
                   -- 13 -> get >>= (return . SAddrSelect)  -- SAddrSelect
-                  _  -> return SUnknown                    -- Unknown Message
+                  _  -> return SUnknown           -- Unknown Message
     
     put (SFrame fp)         = putWord8 0 >> put fp
     put (SJoin m)           = putWord8 1 >> put m
     put (SJoinReply m p)    = putWord8 2 >> put m >> put p
-    put SKeepAlive          = putWord8 3
+    put (SKeepAlive r)      = putWord8 3 >> put r
     put (SNotifyPeer p)     = putWord8 4 >> put p
     put SRequestPeer        = putWord8 5
     put (SPing pp)          = putWord8 6 >> put pp
