@@ -4,12 +4,10 @@ module Scurry.Comm.SockSource (
 
 import Control.Monad (forever)
 import Data.Binary
-import qualified Data.ByteString as BSS
-import qualified Data.ByteString.Lazy as BS
 import System.IO
 import Network.Socket.ByteString (recvFrom)
 import Network.Socket (Socket)
-import qualified Data.ByteString as BSS
+-- import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import Control.Concurrent.STM.TChan
 import GHC.Conc
