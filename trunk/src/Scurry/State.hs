@@ -15,6 +15,10 @@ module Scurry.State (
     getVPNAddr,
     getMyRecord,
 
+    updateMyMAC,
+    updateMyVPNAddr,
+    updateNetMask,
+
     mkState,
 ) where
 
@@ -84,6 +88,18 @@ getVPNAddr = extract (peerVPNAddr . scurryMyRecord)
 
 getMyRecord :: StateRef -> IO PeerRecord
 getMyRecord = extract scurryMyRecord
+
+updateMyMAC :: StateRef -> MACAddr -> IO ()
+updateMyMAC sr ma = let umm s = s { scurryMyRecord = ((scurryMyRecord s) { peerMAC = (Just ma) }) }
+                    in alterState sr umm
+
+updateMyVPNAddr :: StateRef -> ScurryAddress -> IO ()
+updateMyVPNAddr sr va = let uva s = s { scurryMyRecord = ((scurryMyRecord s) { peerVPNAddr = (Just va) }) }
+                        in alterState sr uva
+
+updateNetMask :: StateRef -> ScurryMask -> IO ()
+updateNetMask sr sm = let unm s = s { scurryNetwork = ((scurryNetwork s) { scurryMask = (Just sm) }) }
+                      in alterState sr unm
 
 extract :: (ScurryState -> a) -> StateRef -> IO a
 extract e (StateRef sr) = liftM e (readIORef sr)
