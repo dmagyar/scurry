@@ -89,7 +89,7 @@ main = withSocketsDo $ do
 
     opts <- case opts_ of
                  (Left msg) -> putStrLn msg >> exitFailure
-                 (Right p)  -> print p >> return p
+                 (Right p)  -> return p
 
     -- (Just config)  <- load_scurry_config_file configPath
     -- (Just tracker) <- load_tracker_file trackerPath
