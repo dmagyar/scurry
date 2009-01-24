@@ -1,5 +1,5 @@
 Name:          Scurry
-Version:       0.0.1
+Version:       0.0.2
 Category:      Network
 Description:   A distributed VPN system written in Haskell.
 License:       BSD3
@@ -35,6 +35,30 @@ Cabal-Version: >= 1.2.0
 Build-Type:    Simple
 
 extra-source-files: src/C/help.h
+                    src/Network/Util.hs
+                    src/Scurry/Types/TAP.hs
+                    src/Scurry/Types/Network.hs
+                    src/Scurry/Types/Console.hs
+                    src/Scurry/Types/Threads.hs
+                    src/Scurry/Util.hs
+                    src/Scurry/Peer.hs
+                    src/Scurry/KeepAlive.hs
+                    src/Scurry/Comm.hs
+                    src/Scurry/Network.hs
+                    src/Scurry/Console.hs
+                    src/Scurry/State.hs
+                    src/Scurry/TapConfig.hs
+                    src/Scurry/Console/Parser.hs
+                    src/Scurry/Management/Config.hs
+                    src/Scurry/Management/Tracker.hs
+                    src/Scurry/Types.hs
+                    src/Scurry/Comm/Util.hs
+                    src/Scurry/Comm/SockWrite.hs
+                    src/Scurry/Comm/TapWriter.hs
+                    src/Scurry/Comm/SockSource.hs
+                    src/Scurry/Comm/ConnectionManager.hs
+                    src/Scurry/Comm/TapSource.hs
+                    src/Scurry/Comm/Message.hs
 
 executable scurry
     build-depends: base >= 3.0.0.0
