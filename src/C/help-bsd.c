@@ -32,6 +32,20 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     int fd = -1;
     int sock = -1;
 
+    int tap_num;
+
+    for(tap_num = 0; tap_num < 255 && fd < 0; tap_num++)
+    {
+        char name[15];
+
+        snprintf(name, sizeof(name) - 1, "/dev/tap%d", tap_num);
+
+        fd = open(name, O_RDWR);
+    }
+
+    if (tap_num == 255)
+        return -1;
+
     if ((fd = open("/dev/tap0", O_RDWR)) < 0)
         return -1;
 
