@@ -24,6 +24,7 @@ data ScurryOpts = ScurryOpts {
     vpnMask  :: Maybe ScurryMask,
     bindAddr :: ScurryAddress,
     bindPort :: ScurryPort,
+    userName :: String,
     peers    :: [EndPoint]
 } deriving (Show)
 
@@ -31,6 +32,7 @@ data ScurryOpt = SOVAddr ScurryAddress
                | SOVMask ScurryMask
                | SOBAddr ScurryAddress
                | SOBPort ScurryPort
+               | SOUName String
     deriving (Show)
 
 defaultPort :: ScurryPort
@@ -57,15 +59,18 @@ parseScurryOpts args = let def_opt = ScurryOpts { vpnAddr = Nothing
                                                 , vpnMask = Nothing
                                                 , bindAddr = ScurryAddress 0
                                                 , bindPort = ScurryPort 24999
+                                                , userName = "ScurryUser"
                                                 , peers = [] }
                            va_t = SOVAddr . fromJust . inet_addr
                            vm_t = SOVMask . fromJust . inet_addr
                            ba_t = SOBAddr . fromJust . inet_addr
                            bp_t = SOBPort . readPort
-                           options = [ Option "a" ["vpn-addr"]  (ReqArg va_t "VPN_ADDRESS")  "The IP address to use for the VPN."
-                                     , Option "m" ["vpn-mask"]  (ReqArg vm_t "VPN_NETMASK")  "The network mask the for the VPN."
-                                     , Option "b" ["bind-addr"] (ReqArg ba_t "BIND_ADDRESS") "The network interface on which listen for connections."
-                                     , Option "p" ["bind-port"] (ReqArg bp_t "BIND_PORT")    "The port on which to listen for connections." ]
+                           un_t = SOUName
+                           options = [ Option "a" ["vpn-addr"]  (ReqArg va_t "VPN_ADDRESS")  "VPN IP Address."
+                                     , Option "m" ["vpn-mask"]  (ReqArg vm_t "VPN_NETMASK")  "VPN Netmask."
+                                     , Option "b" ["bind-addr"] (ReqArg ba_t "BIND_ADDRESS") "Address to bind for tunnels."
+                                     , Option "p" ["bind-port"] (ReqArg bp_t "BIND_PORT")    "Port to bind for tunnels." 
+                                     , Option "n" ["user-name"] (ReqArg un_t "USER_NAME")    "Name of the connection user." ]
                            (m,o,_) = getOpt RequireOrder options args -- ignore errors for now
                            u = Left (usageInfo "How to use scurry." options)
                            opt' = foldr rplcOpts def_opt m
@@ -79,6 +84,7 @@ parseScurryOpts args = let def_opt = ScurryOpts { vpnAddr = Nothing
           rplcOpts (SOVMask m) sos = sos { vpnMask  = Just m }
           rplcOpts (SOBAddr a) sos = sos { bindAddr = a }
           rplcOpts (SOBPort p) sos = sos { bindPort = p }
+          rplcOpts (SOUName n) sos = sos { userName = n }
 
 main :: IO ()
 main = withSocketsDo $ do 
