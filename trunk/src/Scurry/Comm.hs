@@ -6,11 +6,14 @@ module Scurry.Comm(
 
 import Data.Maybe
 
+import Control.Concurrent
 import Control.Concurrent.STM.TChan
 import Control.Concurrent.MVar
 import GHC.Conc
 import Network.Socket (Socket(..), Family(..), socket, SocketType(..), defaultProtocol, bindSocket, setSocketOption, SocketOption(Broadcast))
 import System.IO
+
+import Scurry.GUI
 
 import Scurry.Comm.Message
 import Scurry.Comm.TapSource
@@ -83,6 +86,10 @@ startCom tapCfg sock initSS eps = do
     -- Helper thread to get me to the console while we wait for the TAP to come up.
     labelThread helper "Helper Thread"
 
+    gui_t <- forkOS $ gui
+
+    labelThread gui_t "Gtk+ GUI Thread"
+    
     -- Last thread is a continuation of the main thread
     consoleThread sr swchan
 

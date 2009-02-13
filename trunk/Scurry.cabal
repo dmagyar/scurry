@@ -62,7 +62,7 @@ extra-source-files: src/C/help.h
                     src/Scurry/Comm/Message.hs
 
 executable scurry
-    build-depends: base >= 3.0.0.0
+    build-depends: base >= 4.0.0.0 && <= 5.0.0.0
     build-depends: binary >= 0.4.3.1
     build-depends: network >= 2.1.0.0
     build-depends: network-bytestring >= 0.1.1.2
@@ -72,6 +72,7 @@ executable scurry
     build-depends: containers
     build-depends: time >= 1.1.2.2
     build-depends: random >= 1.0.0.0
+    build-depends: gtk >= 0.10.0
 
     if os(mingw32)
         c-sources:          src/C/help-win.c
