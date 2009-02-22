@@ -32,27 +32,20 @@ int open_tap(ip4_addr_t local_ip, ip4_addr_t local_mask, struct tap_info * ti)
     int fd = -1;
     int sock = -1;
 
-    int tap_num;
+    int tap_num = 0;
+    char name[15];
 
-    for(tap_num = 0; tap_num < 255 && fd < 0; tap_num++)
-    {
-        char name[15];
-
-        snprintf(name, sizeof(name) - 1, "/dev/tap%d", tap_num);
-
-        fd = open(name, O_RDWR);
-    }
-
-    if (tap_num == 255)
-        return -1;
-
-    if ((fd = open("/dev/tap0", O_RDWR)) < 0)
+    do {
+        snprintf(name, sizeof(name) - 1, "/dev/tap%d", tap_num++);
+    } while (tap_num < 255 && (fd = open(name, O_RDWR)) < 0); 
+    
+    if (fd < 0)
         return -1;
 
     memset(&ifr_tap, 0, sizeof(ifr_tap));
 
     /* setup tap */
-    strncpy(ifr_tap.ifr_name, "tap0", IFNAMSIZ);
+    strncpy(ifr_tap.ifr_name, &name[5], IFNAMSIZ);
     
     /*
     if ((ioctl(fd, TUNSIFHEAD, (void *)&ifr_tap)) < 0)
@@ -91,7 +84,7 @@ static int set_ip(struct ifreq * ifr, int sock, ip4_addr_t ip, ip4_addr_t mask)
     /* Setting a single address of an interface is depreciated. Now uses ifaliasreq and it is done in one call */
     struct ifaliasreq ifa;
     struct sockaddr_in *in;
-    
+        
     memset(&ifa, 0, sizeof(ifa));
     strcpy(ifa.ifra_name, ifr->ifr_name);
     
