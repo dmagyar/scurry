@@ -86,7 +86,7 @@ startCom tapCfg sock initSS eps = do
     -- Helper thread to get me to the console while we wait for the TAP to come up.
     labelThread helper "Helper Thread"
 
-    gui_t <- forkOS $ gui
+    gui_t <- forkOS $ startGui
 
     labelThread gui_t "Gtk+ GUI Thread"
     
