@@ -1,27 +1,28 @@
 module Scurry.GUI (
-    gui,
+    startGui,
 ) where
+
+import Paths_Scurry
 
 import Control.Concurrent
 import Graphics.UI.Gtk
+import Graphics.UI.Gtk.Glade
 
-startGui :: IO ()
-startGui = do
+gui :: IO ()
+gui = do
     unsafeInitGUIForThreadedRTS
-    window <- windowNew
-    button <- buttonNew
 
-    set window [ containerBorderWidth := 10,
-                 containerChild := button ]
-    set button [ buttonLabel := "Hello World" ]
-    onClicked button (putStrLn "Hello World")
+    gladeFile <- getDataFileName "scurry.glade"
+
+    Just xml <- xmlNew gladeFile
+    window <- xmlGetWidget xml castToWindow "window"
     onDestroy window mainQuit
     widgetShowAll window
     mainGUI
 
-gui :: IO ()
-gui = do
+startGui :: IO ()
+startGui = do
     b <- isCurrentThreadBound
 
-    if b then startGui
+    if b then gui
          else fail "GUI thread must be a bound thread (forkOS)."

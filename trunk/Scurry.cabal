@@ -34,6 +34,8 @@ Homepage:      http://code.google.com/p/scurry/
 Cabal-Version: >= 1.2.0
 Build-Type:    Simple
 
+data-files: scurry.glade
+
 extra-source-files: src/C/help.h
                     src/C/tun_ioctls.h
                     src/Network/Util.hs
@@ -72,7 +74,8 @@ executable scurry
     build-depends: containers
     build-depends: time >= 1.1.2.2
     build-depends: random >= 1.0.0.0
-    build-depends: gtk >= 0.10.0
+    build-depends: gtk >= 0.9
+    build-depends: glade >= 0.9
 
     if os(mingw32)
         c-sources:          src/C/help-win.c
