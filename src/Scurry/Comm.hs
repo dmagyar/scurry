@@ -71,17 +71,19 @@ startCom tapCfg sock initSS eps = do
         putStrLn $ "Using TAP IP of " ++ (show tapaddr) ++ " and TAP netmask of " ++ (show tapmask)
 
         -- Bring up tap device
-        Right (tap,macaddr) <- getTapHandle tapaddr tapmask 
-        -- alterState sr (setMac (Just macaddr))
+        tma <- getTapHandle tapaddr tapmask 
 
-        updateMyMAC sr macaddr
-        updateMyVPNAddr sr tapaddr
-        updateNetMask sr tapmask
+        case tma of
+            Left _ -> error "The tap device doesn't seem to exist! Please install a TAP driver. (TAP-Win32 in windows)"
+            Right (tap,macaddr) -> do
+                updateMyMAC sr macaddr
+                updateMyVPNAddr sr tapaddr
+                updateNetMask sr tapmask
 
-        twt <- forkIO $ tapWriterThread twchan tap
-        tst <- forkIO $ tapSourceThread tap sr swchan
-        labelThread tst "TAP Source Thread"
-        labelThread twt "Tap Writer Thread"
+                twt <- forkIO $ tapWriterThread twchan tap
+                tst <- forkIO $ tapSourceThread tap sr swchan
+                labelThread tst "TAP Source Thread"
+                labelThread twt "Tap Writer Thread"
 
     -- Helper thread to get me to the console while we wait for the TAP to come up.
     labelThread helper "Helper Thread"
