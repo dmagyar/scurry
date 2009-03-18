@@ -1,0 +1,15 @@
+# New method for managing asyncronous messages inside Scurry.
+
+= Introduction =
+
+The current Scurry management messaging model isn't very good. We have one task generate messages on a time or need based model, but another task catches the responses and updates the state of the system. This produces at least two problems:
+  * The code does not read as plainly as I would like
+  * The program requires some sort of synchronizing state variable. Eventually I would like to remove all explicit state from the program (no IORef's or MVar's that are used for long term state storage).
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
