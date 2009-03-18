@@ -1,4 +1,4 @@
-#New method for managing asyncronous messages inside Scurry.
+Scurry needs a new model for managing asynchronous messages.
 
 = Introduction =
 
