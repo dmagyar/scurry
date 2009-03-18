@@ -1,4 +1,4 @@
-# New method for managing asyncronous messages inside Scurry.
+#New method for managing asyncronous messages inside Scurry.
 
 = Introduction =
 
