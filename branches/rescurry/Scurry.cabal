@@ -1,0 +1,50 @@
+Name:          Scurry
+Version:       0.1.0
+Category:      Network
+Description:   A distributed VPN system written in Haskell.
+License:       BSD3
+License-File:  LICENSE
+Author:        John Van Enk
+Maintainer:    vanenkj@gmail.com
+Copyright:     John Van Enk, 2009
+
+Synopsis:      A cross platform P2P VPN application built using Haskell.
+Stability:     Experimental
+
+Description:   P2P VPN implementation.
+
+Homepage:      http://code.google.com/p/scurry/
+
+Cabal-Version: >= 1.2.0
+Build-Type:    Simple
+
+data-files: scurry.glade
+
+extra-source-files: 
+
+executable scurry
+    build-depends: base >= 4.0.0.0 && <= 5.0.0.0 ,
+                   directory >= 1.0.0.0 && < 1.0.1.0
+
+--  if os(mingw32)
+--      c-sources:          src/C/help-win.c
+--      extra-libraries:    Iphlpapi, ws2_32
+--      cc-options:         -D MINGW32
+--      cpp-options:        -DCALLCONV=stdcall
+
+--  if os(linux)
+--      build-depends: unix >= 2.3.0.0
+--      c-sources:          src/C/help-linux.c
+--      cc-options:         -D LINUX
+--      cpp-options:        -DCALLCONV=ccall
+
+--  if os(darwin) || os(freebsd)
+--      build-depends: unix >= 2.3.0.0
+--      c-sources:          src/C/help-bsd.c
+--      cc-options:         -D BSD
+--      cpp-options:        -DCALLCONV=ccall
+
+    hs-source-dirs:     src
+    ghc-options:        -Wall -threaded
+    main-is:            scurry.hs
+    
