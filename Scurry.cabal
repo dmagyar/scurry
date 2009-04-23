@@ -24,7 +24,9 @@ extra-source-files:
 
 executable scurry
     build-depends: base >= 4.0.0.0 && <= 5.0.0.0 ,
-                   directory >= 1.0.0.0 && < 1.0.1.0
+                   directory >= 1.0.0.0 && < 1.0.1.0,
+                   HsOpenSSL >= 0.6 && < 0.7,
+                   network >= 2.2.0.0 && < 2.2.1.0
 
 --  if os(mingw32)
 --      c-sources:          src/C/help-win.c
