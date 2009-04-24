@@ -9,6 +9,9 @@ import OpenSSL
 import OpenSSL.RSA
 import OpenSSL.PEM
 import OpenSSL.EVP.PKey
+import OpenSSL.EVP.Seal
+import OpenSSL.EVP.Open
+import OpenSSL.EVP.Cipher
 
 appName :: String
 appName = "scurry"
@@ -27,9 +30,13 @@ getDataDir = do
     createDirectoryIfMissing True p
     return p
 
+-- | Returns a path to the public key file given
+-- the user data directory path.
 pubKeyPath :: FilePath -> FilePath
 pubKeyPath dd = dd ++ "/key.pub"
 
+-- | Returns a path to the private key file given
+-- the user data directory path.
 prvKeyPath :: FilePath -> FilePath
 prvKeyPath dd = dd ++ "/key.prv"
 
@@ -76,5 +83,12 @@ main = withSocketsDo $ withOpenSSL $ do
     dd   <- setup
     key  <- getKey dd
 
-    writePKCS8PrivateKey key Nothing >>= putStrLn
-    writePublicKey key >>= putStrLn
+    Just cipher <- getCipherByName "aes-256-cbc"
+
+    (enc,keys,iv) <- seal cipher [(fromPublicKey key)] "Hello World"
+
+    print $ enc
+    print $ unlines keys
+    print $ iv
+
+    print $ open cipher (keys !! 0) iv key enc
